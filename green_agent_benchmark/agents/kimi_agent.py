@@ -20,6 +20,8 @@ class KimiAgent(OpenAICompatibleAgent):
         - KIMI_API_BASE
     """
 
-    default_model: str = field(default="kimi-latest", init=False)
+    default_model: str = field(default="kimi-k2-0905-preview", init=False)
     default_name: str = field(default="Kimi", init=False)
     env_prefix: str = field(default="KIMI", init=False)
+    default_base_url: str = field(default="https://api.moonshot.cn/v1", init=False)
+    use_responses: bool = field(default=False, init=False)

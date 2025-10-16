@@ -20,6 +20,10 @@ class GeminiAgent(OpenAICompatibleAgent):
         - GEMINI_API_BASE (if using a self-hosted proxy)
     """
 
-    default_model: str = field(default="gemini-1.5-pro", init=False)
+    default_model: str = field(default="gemini-2.5-flash", init=False)
     default_name: str = field(default="Gemini", init=False)
     env_prefix: str = field(default="GEMINI", init=False)
+    default_base_url: str = field(
+        default="https://generativelanguage.googleapis.com/v1beta/openai", init=False
+    )
+    use_responses: bool = field(default=False, init=False)

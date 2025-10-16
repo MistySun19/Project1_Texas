@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from .baseline_registry import make_baseline
+from .agents.base import load_agent as load_custom_agent
 from .config_loader import load_config
 from .engine import (
     AgentInterface,
@@ -28,7 +29,6 @@ PositionHU = Literal["SB", "BB"]
 PositionSix = Literal["BTN", "SB", "BB", "UTG", "HJ", "CO"]
 
 
-@dataclass(slots=True)
 @dataclass
 class HandRecord:
     player: str
@@ -45,7 +45,7 @@ class HandRecord:
     log_path: str
 
 
-@dataclass(slots=True)
+@dataclass
 class SeriesConfig:
     mode: Literal["hu", "sixmax"]
     blinds: Dict[str, int]
@@ -58,6 +58,8 @@ class SeriesConfig:
     seat_replicas: Optional[int] = None
     opponent_pool: Optional[Dict[str, float]] = None
     population_mirroring: bool = False
+    opponent_lineup: Optional[List[str]] = None
+    lineup: Optional[List[str]] = None
 
     @property
     def starting_stack(self) -> int:
@@ -79,6 +81,8 @@ class SeriesConfig:
             seat_replicas=data.get("seat_replicas"),
             opponent_pool=data.get("opponent_pool"),
             population_mirroring=data.get("population_mirroring", False),
+            opponent_lineup=data.get("opponent_lineup"),
+            lineup=data.get("lineup"),
         )
         config.validate()
         return config
@@ -89,13 +93,26 @@ class SeriesConfig:
         if self.mode == "hu":
             if self.hands_per_seed is None or self.replicas is None:
                 raise ValueError("HU config requires hands_per_seed and replicas")
-            if not self.opponent_mix:
-                raise ValueError("HU config requires opponent_mix")
+            if self.lineup:
+                if len(self.lineup) != 2:
+                    raise ValueError("HU lineup must contain exactly 2 entries")
+            elif not self.opponent_mix:
+                raise ValueError("HU config requires opponent_mix or lineup")
+        if self.lineup and self.mode != "sixmax":
+            if len(self.lineup) != 2:
+                raise ValueError("HU lineup must contain exactly 2 entries")
         if self.mode == "sixmax":
             if self.hands_per_replica is None or self.seat_replicas is None:
                 raise ValueError("6-max config requires hands_per_replica and seat_replicas")
-            if not self.opponent_pool:
-                raise ValueError("6-max config requires opponent_pool")
+            if self.lineup:
+                if len(self.lineup) != 6:
+                    raise ValueError("6-max lineup must contain exactly 6 entries")
+                return
+            if self.opponent_lineup:
+                if len(self.opponent_lineup) != 5:
+                    raise ValueError("6-max opponent_lineup must contain 5 entries")
+            elif not self.opponent_pool:
+                raise ValueError("6-max config requires opponent_pool or opponent_lineup")
 
 
 @dataclass
@@ -105,6 +122,9 @@ class RunResult:
     metrics_path: pathlib.Path
     per_hand_metrics_path: pathlib.Path
     metrics: Dict[str, Any]
+
+# Sentinel label used to mark the CLI-provided agent when constructing 6-max lineups
+CLI_AGENT_SENTINEL = "__CLI_AGENT__"
 
 
 def seat_positions(seat_count: int, button_seat: int) -> Dict[int, str]:
@@ -140,8 +160,9 @@ class BenchmarkRunner:
             table_id=f"green-{config.mode}",
         )
 
-    def run(self, agent) -> RunResult:
-        print(f"[BenchmarkRunner] Starting run for {getattr(agent, 'name', 'agent')} in mode {self.config.mode}")
+    def run(self, agent=None) -> RunResult:
+        runner_name = getattr(agent, "name", "lineup") if agent is not None else "lineup"
+        print(f"[BenchmarkRunner] Starting run for {runner_name} in mode {self.config.mode}")
         if self.config.mode == "hu":
             records, log_paths = self._run_hu(agent)
         else:
@@ -161,42 +182,59 @@ class BenchmarkRunner:
         return RunResult(records, log_paths, metrics_path, per_hand_path, metrics)
 
     def _run_hu(self, agent) -> Tuple[List[HandRecord], List[pathlib.Path]]:
-        assert self.config.opponent_mix is not None
-        assert self.config.replicas is not None
+
+        use_full_lineup = bool(self.config.lineup)
+        if use_full_lineup:
+            lineup_agents = [self._create_agent_from_spec(spec) for spec in self.config.lineup or []]
+            replicas = self.config.replicas or 2
+        else:
+            assert agent is not None
+            assert self.config.opponent_mix is not None
+            assert self.config.replicas is not None
+            opponent_cycle = self._assignment_cycle(self.config.opponent_mix)
+            replicas = self.config.replicas
+
         assert self.config.hands_per_seed is not None
 
-        opponent_cycle = self._assignment_cycle(self.config.opponent_mix)
         records: List[HandRecord] = []
         log_paths: List[pathlib.Path] = []
 
         for seed_idx, seed in enumerate(self.config.seeds):
-            opponent_name = opponent_cycle[seed_idx % len(opponent_cycle)]
-            print(f"[BenchmarkRunner] HU seed {seed} vs {opponent_name}")
-            for replica_id in range(self.config.replicas):
-                if replica_id % 2 == 0:
-                    agent_seat = 0
-                    opponent_seat = 1
-                    button_seat = agent_seat
-                else:
-                    agent_seat = 1
-                    opponent_seat = 0
-                    button_seat = opponent_seat
+            if use_full_lineup:
+                print(f"[BenchmarkRunner] HU seed {seed} (lineup mode)")
+                rotated_agents = self._rotate_assignment(lineup_agents, seed_idx)
+            else:
+                opponent_name = opponent_cycle[seed_idx % len(opponent_cycle)]
+                print(f"[BenchmarkRunner] HU seed {seed} vs {opponent_name}")
 
-                log_path = (
-                    self.output_dir
-                    / "logs"
-                    / "hu"
-                    / opponent_name
-                    / f"seed{seed}_rep{replica_id}.ndjson"
-                )
+            for replica_id in range(replicas):
+                if use_full_lineup:
+                    # Replica controls button order only; seats are fixed by rotated_agents
+                    agent_iface = AgentInterface(rotated_agents[0], 0)
+                    opponent_iface = AgentInterface(rotated_agents[1], 1)
+                    agent_seat, opponent_seat = 0, 1
+                    button_seat = 0 if replica_id % 2 == 0 else 1
+                    log_dir = self.output_dir / "logs" / "hu" / opponent_iface.name
+                else:
+                    if replica_id % 2 == 0:
+                        agent_seat = 0
+                        opponent_seat = 1
+                        button_seat = agent_seat
+                    else:
+                        agent_seat = 1
+                        opponent_seat = 0
+                        button_seat = opponent_seat
+                    agent_iface = AgentInterface(agent, agent_seat)
+                    opponent_name = opponent_cycle[seed_idx % len(opponent_cycle)]
+                    opponent_iface = AgentInterface(make_baseline(opponent_name), opponent_seat)
+                    log_dir = self.output_dir / "logs" / "hu" / opponent_name
+
+                log_path = log_dir / f"seed{seed}_rep{replica_id}.ndjson"
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 log_paths.append(log_path)
 
                 with NDJSONLogger(log_path) as logger:
                     engine = HoldemEngine(self.engine_config, logger)
-                    agent_iface = AgentInterface(agent, agent_seat)
-                    opponent_instance = make_baseline(opponent_name)
-                    opponent_iface = AgentInterface(opponent_instance, opponent_seat)
                     players = {
                         agent_seat: PlayerRuntimeState(
                             seat_id=agent_seat,
@@ -268,17 +306,27 @@ class BenchmarkRunner:
         return records, log_paths
 
     def _run_sixmax(self, agent) -> Tuple[List[HandRecord], List[pathlib.Path]]:
-        assert self.config.opponent_pool is not None
         assert self.config.hands_per_replica is not None
         assert self.config.seat_replicas is not None
 
         records: List[HandRecord] = []
         log_paths: List[pathlib.Path] = []
 
+        use_full_lineup = bool(self.config.lineup)
+
         for seed in self.config.seeds:
             print(f"[BenchmarkRunner] 6-max seed {seed}")
-            lineup = self._build_lineup(seed, self.config.opponent_pool)
-            base_assignment = ["agent", *lineup]
+            if use_full_lineup:
+                base_assignment = list(self.config.lineup or [])
+            else:
+                if self.config.opponent_lineup:
+                    opponents = list(self.config.opponent_lineup)
+                else:
+                    assert self.config.opponent_pool is not None
+                    opponents = self._build_lineup(seed, self.config.opponent_pool)
+                if agent is None:
+                    raise ValueError("6-max requires --agent when lineup is not provided in config")
+                base_assignment = [CLI_AGENT_SENTINEL, *opponents]
             for replica_id in range(self.config.seat_replicas):
                 print(f"[BenchmarkRunner] 6-max seat replica {replica_id}")
                 rotated = self._rotate_assignment(base_assignment, replica_id)
@@ -293,14 +341,20 @@ class BenchmarkRunner:
                     engine = HoldemEngine(self.engine_config, logger)
                     players: Dict[int, PlayerRuntimeState] = {}
                     interfaces: Dict[int, AgentInterface] = {}
-                    agent_seat = 0
+                    primary_seat: Optional[int] = None
+                    primary_name: Optional[str] = None
                     for seat, label in enumerate(rotated):
-                        if label == "agent":
-                            iface = AgentInterface(agent, seat)
-                            agent_seat = seat
+                        if use_full_lineup:
+                            agent_obj = self._create_agent_from_spec(label)
+                            iface = AgentInterface(agent_obj, seat)
                         else:
-                            baseline = make_baseline(label)
-                            iface = AgentInterface(baseline, seat)
+                            if label == CLI_AGENT_SENTINEL:
+                                iface = AgentInterface(agent, seat)
+                                primary_seat = seat
+                                primary_name = iface.name
+                            else:
+                                agent_obj = self._create_agent_from_spec(label)
+                                iface = AgentInterface(agent_obj, seat)
                         interfaces[seat] = iface
                         players[seat] = PlayerRuntimeState(
                             seat_id=seat,
@@ -332,10 +386,14 @@ class BenchmarkRunner:
                         post_illegal = {seat: players[seat].illegal_actions for seat in players}
 
                         for seat, iface in interfaces.items():
+                            if use_full_lineup or primary_seat is None:
+                                opponent_label = "table"
+                            else:
+                                opponent_label = "mix" if seat == primary_seat else (primary_name or "agent")
                             records.append(
                                 HandRecord(
                                     player=iface.name,
-                                    opponent="mix" if seat == agent_seat else interfaces[agent_seat].name,
+                                    opponent=opponent_label,
                                     mode="sixmax",
                                     seed=seed,
                                     hand_index=hand_index,
@@ -372,3 +430,22 @@ class BenchmarkRunner:
     def _rotate_assignment(self, assignment: List[str], replica_id: int) -> List[str]:
         shift = -(replica_id % len(assignment))
         return assignment[shift:] + assignment[:shift]
+
+    def _create_agent_from_spec(self, spec: str):
+        if spec.startswith("baseline:"):
+            base, sep, params = spec.partition("?")
+            baseline_name = base.split(":", 1)[1]
+            kwargs: Dict[str, Any] = {}
+            if sep:
+                for item in params.split("&"):
+                    if not item:
+                        continue
+                    key, _, value = item.partition("=")
+                    if key:
+                        kwargs[key] = value
+            display_name = kwargs.pop("name", None)
+            agent_obj = make_baseline(baseline_name, **kwargs)
+            if display_name:
+                setattr(agent_obj, "name", display_name)
+            return agent_obj
+        return load_custom_agent(spec)

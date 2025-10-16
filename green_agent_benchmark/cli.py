@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import sys
 from typing import Any
 
 from .agents.base import load_agent as load_custom_agent
 from .baseline_registry import make_baseline
+from .env_loader import load_env
 from .runner import BenchmarkRunner, SeriesConfig
 
 
@@ -17,8 +19,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--agent",
         required=False,
-        default="baseline:random-hu",
-        help="Agent spec. Use 'baseline:<name>' for packaged baselines or 'pkg.module:Class'",
+        default=None,
+        help="Agent spec (baseline:<name> or pkg.module:Class). Optional when config defines a full lineup.",
     )
     parser.add_argument(
         "--output",
@@ -42,11 +44,21 @@ def load_agent(spec: str) -> Any:
 
 
 def main() -> None:
+    load_env()
     args = parse_args()
     config = SeriesConfig.from_file(args.config)
-    agent = load_agent(args.agent)
-    if args.agent_name:
-        setattr(agent, "name", args.agent_name)
+
+    if config.lineup:
+        if args.agent:
+            print("[CLI] Config defines full lineup; ignoring --agent", file=sys.stderr)
+        if args.agent_name:
+            print("[CLI] Config defines full lineup; ignoring --agent-name", file=sys.stderr)
+        agent = None
+    else:
+        spec = args.agent or "baseline:random-hu"
+        agent = load_agent(spec)
+        if args.agent_name and agent is not None:
+            setattr(agent, "name", args.agent_name)
 
     output_dir = pathlib.Path(args.output)
     runner = BenchmarkRunner(config, output_dir)

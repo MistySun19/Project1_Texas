@@ -10,6 +10,8 @@ from .gpt5_agent import GPT5Agent
 from .gemini_agent import GeminiAgent
 from .deepseek_agent import DeepSeekAgent
 from .kimi_agent import KimiAgent
+from .qwen_agent import QwenAgent
+from .cohere_agent import CohereAgent
 
 __all__ = [
     "base",
@@ -20,4 +22,6 @@ __all__ = [
     "GeminiAgent",
     "DeepSeekAgent",
     "KimiAgent",
+    "QwenAgent",
+    "CohereAgent",
 ]

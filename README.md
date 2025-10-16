@@ -36,6 +36,9 @@ python -m pip install -r requirements.txt
 
 Optional dev extras (pytest) are declared in `pyproject.toml`.
 
+Environment secrets (e.g. `OPENAI_API_KEY`) can be stored in a local `.env`
+file; the CLI automatically loads it if present.
+
 ## Running the Benchmark
 
 ### 1. Use packaged baselines
@@ -76,6 +79,40 @@ python -m green_agent_benchmark.cli \
 
 The CLI accepts `--agent-name` to override display names in logs and metrics.
 
+#### Full-table lineups
+
+To specify every seat directly (useful for six-player LLM showdowns), provide a
+`lineup` array in the config. Each entry can be `baseline:<name>` or a
+`pkg.module:Class` spec. Example (`configs/sixmax_llm_showdown.yaml`):
+
+```yaml
+lineup:
+  - baseline:gpt5-6
+  - baseline:deepseek-6
+  - baseline:gemini-6
+  - baseline:kimi-6
+  - baseline:qwen-6
+  - baseline:cohere-6
+```
+
+With a full lineup defined, `--agent` / `--agent-name` become optional.
+
+You can also override baseline parameters directly in the lineup via query
+strings, e.g.:
+
+```yaml
+lineup:
+  - baseline:gpt5-6?model=gpt-5&name=GPT5-Pro
+  - baseline:gpt5-6?model=gpt-5-mini&name=GPT5-Mini
+  - baseline:gemini-6
+  - baseline:deepseek-6
+  - baseline:kimi-6
+  - baseline:qwen-6
+```
+
+Each `key=value` pair becomes a keyword argument when instantiating the agent,
+so you can set model variants or display names without touching the CLI.
+
 ### 3. GPT-5 via OpenAI API
 
 Install the `openai` dependency (already listed in `requirements.txt`), export your API key, and point the CLI at the GPT-5 wrapper:
@@ -96,17 +133,18 @@ Optional flags for `GPT5Agent`:
 - `dry_run=True`: skip API calls and fall back to deterministic safety behaviour (useful for offline tests).
 - `system_prompt="..."`: append extra guardrails to the base system prompt.
 
-### 4. Other LLM Providers (Gemini / DeepSeek / Kimi)
+### 4. Other LLM Providers (Gemini / DeepSeek / Kimi / Qwen / Cohere)
 
 Agents for additional OpenAI-compatible providers are shipped under
-`green_agent_benchmark.agents.{gemini_agent,deepseek_agent,kimi_agent}` and are
-available in the baseline registry as `gemini-hu`, `deepseek-hu`, `kimi-hu`
-(and the corresponding `-6` variants for 6-max). Each agent reads its API
-configuration from environment variables:
+`green_agent_benchmark.agents.{gemini_agent,deepseek_agent,kimi_agent,qwen_agent,cohere_agent}`
+and are available in the baseline registry as `*-hu` / `*-6` variants. Each
+agent reads its API configuration from environment variables:
 
 - Gemini: `GEMINI_API_KEY`, optional `GEMINI_MODEL`, `GEMINI_API_BASE`
 - DeepSeek: `DEEPSEEK_API_KEY`, optional `DEEPSEEK_MODEL`, `DEEPSEEK_API_BASE`
 - Kimi: `KIMI_API_KEY`, optional `KIMI_MODEL`, `KIMI_API_BASE`
+- Qwen: `QWEN_API_KEY`, optional `QWEN_MODEL`, `QWEN_API_BASE`
+- Cohere: `COHERE_API_KEY`, optional `COHERE_MODEL`, `COHERE_API_BASE`
 
 Example HU showdown using Gemini vs GPT-5:
 
@@ -123,7 +161,10 @@ python -m green_agent_benchmark.cli \
 ```
 
 In the YAML config swap `opponent_mix` to `gemini-hu: 1.0` (or any mixture of
-`gpt5-hu`, `deepseek-hu`, `kimi-hu`) to stage LLM-vs-LLM matches.
+`gpt5-hu`, `deepseek-hu`, `kimi-hu`) to stage LLM-vs-LLM matches. For Six-Max
+you can also specify a complete `lineup` of six agent specs (baseline or custom
+module paths); when provided, the CLI automatically instantiates every seat so
+`--agent` / `--agent-name` are optional.
 
 ### 5. Quick Demos
 
@@ -151,6 +192,19 @@ In the YAML config swap `opponent_mix` to `gemini-hu: 1.0` (or any mixture of
   CLI output now prints a summary block per player and `metrics/metrics.json`
   contains separate entries (e.g. `"GPT5"`, `"DeepSeek"`) so you can compare both
   sides directly.
+
+- **6-max LLM showdown (GPT-5 + DeepSeek + Gemini + Kimi + Qwen + Cohere):**
+
+  ```bash
+  python -m green_agent_benchmark.cli \
+    --config configs/sixmax_llm_showdown.yaml \
+    --output artifacts/sixmax_llm
+  ```
+
+  Ensure `.env` contains all six providers' API keys/bases. Because the config
+  declares a full six-player `lineup`, the CLI instantiates every seat
+  automatically and the output metrics list one block per model so you can
+  analyse the entire table in a single run.
 
 ## Outputs
 

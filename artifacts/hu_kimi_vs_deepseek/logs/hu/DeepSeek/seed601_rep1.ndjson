@@ -1,0 +1,6 @@
+{"payload": {"button_seat": 1, "hand_id": "601-0-1", "hand_index": 0, "replica_id": 1, "rng_tag": "601:0:1", "seats": {"0": {"name": "Kimi", "stack": 10000}, "1": {"name": "DeepSeek", "stack": 10000}}, "seed": 601, "table_id": "green-hu"}, "ts": "2025-10-16T22:16:20.125571+00:00", "type": "hand_start"}
+{"payload": {"cards": ["2h", "Qd"], "hand_id": "601-0-1", "seat": 0}, "ts": "2025-10-16T22:16:20.125705+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["4c", "Kh"], "hand_id": "601-0-1", "seat": 1}, "ts": "2025-10-16T22:16:20.125743+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 0, "type": "small"}, "ts": "2025-10-16T22:16:20.125771+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 1, "type": "big"}, "ts": "2025-10-16T22:16:20.125789+00:00", "type": "blind"}
+{"payload": {"action": "check", "amount": null, "bet": 100, "elapsed_ms": 1343, "hand_id": "601-0-1", "min_raise_to": 200, "seat": 1, "stack_after": 9900, "street": "preflop", "to_call": 0}, "ts": "2025-10-16T22:16:21.467986+00:00", "type": "action"}
