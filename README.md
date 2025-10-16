@@ -125,6 +125,33 @@ python -m green_agent_benchmark.cli \
 In the YAML config swap `opponent_mix` to `gemini-hu: 1.0` (or any mixture of
 `gpt5-hu`, `deepseek-hu`, `kimi-hu`) to stage LLM-vs-LLM matches.
 
+### 5. Quick Demos
+
+- **10-hand smoke test (Random baseline):**
+
+  ```bash
+  python -m green_agent_benchmark.cli \
+    --config configs/demo_hu_10hands.yaml \
+    --agent baseline:random-hu \
+    --output artifacts/random_demo
+  ```
+
+- **GPT-5 (OpenAI) vs DeepSeek (both require API keys):**
+
+  ```bash
+  export OPENAI_API_KEY=...
+  export DEEPSEEK_API_KEY=...
+  python -m green_agent_benchmark.cli \
+    --config configs/demo_hu_deepseek_vs_gpt5.yaml \
+    --agent green_agent_benchmark.agents.gpt5_agent:GPT5Agent \
+    --agent-name GPT5 \
+    --output artifacts/gpt5_vs_deepseek
+  ```
+
+  CLI output now prints a summary block per player and `metrics/metrics.json`
+  contains separate entries (e.g. `"GPT5"`, `"DeepSeek"`) so you can compare both
+  sides directly.
+
 ## Outputs
 
 Each run populates the chosen `--output` directory with:
@@ -137,14 +164,27 @@ Example fragment from `metrics.json`:
 
 ```json
 {
-  "bb_per_100": 1.85,
-  "bb_per_100_ci": [-0.42, 4.12],
-  "behavior": {
-    "vpip": {"count": 34, "rate": 0.68},
-    "pfr": {"count": 18, "rate": 0.36},
-    "af": 1.50,
-    "wt_sd": {"count": 12, "rate": 0.55},
-    "decision_time_ms": {"mean": 12.3, "samples": 120}
+  "GPT5": {
+    "bb_per_100": -35.0,
+    "bb_per_100_ci": [-40.0, -30.0],
+    "behavior": {
+      "vpip": {"count": 7, "rate": 0.70},
+      "pfr": {"count": 4, "rate": 0.40},
+      "af": 1.75,
+      "wt_sd": {"count": 3, "rate": 0.60},
+      "decision_time_ms": {"mean": 850.4, "samples": 22}
+    }
+  },
+  "DeepSeek": {
+    "bb_per_100": 35.0,
+    "bb_per_100_ci": [30.0, 40.0],
+    "behavior": {
+      "vpip": {"count": 8, "rate": 0.80},
+      "pfr": {"count": 5, "rate": 0.50},
+      "af": 2.10,
+      "wt_sd": {"count": 4, "rate": 0.67},
+      "decision_time_ms": {"mean": 430.2, "samples": 21}
+    }
   }
 }
 ```
