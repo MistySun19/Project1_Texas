@@ -1,0 +1,13 @@
+mode: sixmax
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [201, 202]
+seat_replicas: 6
+hands_per_replica: 30
+opponent_pool:
+  random-6: 0.4
+  tag-6: 0.4
+  cfrlite-6: 0.2
+population_mirroring: true

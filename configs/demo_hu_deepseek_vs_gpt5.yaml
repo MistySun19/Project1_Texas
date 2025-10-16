@@ -1,0 +1,10 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [401]
+hands_per_seed: 5
+replicas: 2
+opponent_mix:
+  deepseek-hu: 1.0

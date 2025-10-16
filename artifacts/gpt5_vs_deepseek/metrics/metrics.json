@@ -1,0 +1,84 @@
+{
+  "DeepSeek": {
+    "bb_per_100": 65.0,
+    "bb_per_100_ci": [
+      65.0,
+      65.0
+    ],
+    "behavior": {
+      "af": 1.0,
+      "decision_time_ms": {
+        "mean": 1859.608695652174,
+        "samples": 23
+      },
+      "pfr": {
+        "count": 1,
+        "rate": 0.1
+      },
+      "postflop": {
+        "calls": 1,
+        "raises": 1
+      },
+      "vpip": {
+        "count": 3,
+        "rate": 0.3
+      },
+      "wt_sd": {
+        "count": 3,
+        "rate": 1.0
+      }
+    },
+    "hands": 10,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": 1,
+    "timeouts": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "total_delta_chips": 650
+  },
+  "GPT5": {
+    "bb_per_100": -65.0,
+    "bb_per_100_ci": [
+      -65.0,
+      -65.0
+    ],
+    "behavior": {
+      "af": 2.0,
+      "decision_time_ms": {
+        "mean": 13935.894736842105,
+        "samples": 19
+      },
+      "pfr": {
+        "count": 10,
+        "rate": 1.0
+      },
+      "postflop": {
+        "calls": 0,
+        "raises": 2
+      },
+      "vpip": {
+        "count": 10,
+        "rate": 1.0
+      },
+      "wt_sd": {
+        "count": 9,
+        "rate": 3.0
+      }
+    },
+    "hands": 10,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": -1,
+    "timeouts": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "total_delta_chips": -650
+  }
+}

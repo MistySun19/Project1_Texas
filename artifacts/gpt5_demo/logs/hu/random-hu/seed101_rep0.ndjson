@@ -1,0 +1,5 @@
+{"payload": {"button_seat": 0, "hand_id": "101-0-0", "hand_index": 0, "replica_id": 0, "rng_tag": "101:0:0", "seats": {"0": {"name": "GPT5", "stack": 10000}, "1": {"name": "random-hu", "stack": 10000}}, "seed": 101, "table_id": "green-hu"}, "ts": "2025-10-16T02:54:42.249599+00:00", "type": "hand_start"}
+{"payload": {"cards": ["7h", "Jc"], "hand_id": "101-0-0", "seat": 0}, "ts": "2025-10-16T02:54:42.249748+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["4d", "Kh"], "hand_id": "101-0-0", "seat": 1}, "ts": "2025-10-16T02:54:42.249761+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 1, "type": "small"}, "ts": "2025-10-16T02:54:42.249771+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 0, "type": "big"}, "ts": "2025-10-16T02:54:42.249778+00:00", "type": "blind"}

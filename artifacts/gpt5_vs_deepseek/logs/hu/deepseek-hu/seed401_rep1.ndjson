@@ -1,0 +1,54 @@
+{"payload": {"button_seat": 0, "hand_id": "401-0-1", "hand_index": 0, "replica_id": 1, "rng_tag": "401:0:1", "seats": {"0": {"name": "DeepSeek", "stack": 10000}, "1": {"name": "GPT5", "stack": 10000}}, "seed": 401, "table_id": "green-hu"}, "ts": "2025-10-16T06:03:19.715615+00:00", "type": "hand_start"}
+{"payload": {"cards": ["Kh", "6s"], "hand_id": "401-0-1", "seat": 1}, "ts": "2025-10-16T06:03:19.715726+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["Th", "9h"], "hand_id": "401-0-1", "seat": 0}, "ts": "2025-10-16T06:03:19.715747+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 1, "type": "small"}, "ts": "2025-10-16T06:03:19.715764+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 0, "type": "big"}, "ts": "2025-10-16T06:03:19.715777+00:00", "type": "blind"}
+{"payload": {"action": "check", "amount": null, "bet": 100, "elapsed_ms": 1479, "hand_id": "401-0-1", "min_raise_to": 200, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 0}, "ts": "2025-10-16T06:03:21.194094+00:00", "type": "action"}
+{"payload": {"action": "raise_to", "amount": 200, "bet": 200, "elapsed_ms": 15378, "hand_id": "401-0-1", "min_raise_to": 200, "seat": 1, "stack_after": 9800, "street": "preflop", "to_call": 50}, "ts": "2025-10-16T06:03:36.571887+00:00", "type": "action"}
+{"payload": {"action": "call", "amount": null, "bet": 200, "elapsed_ms": 1843, "hand_id": "401-0-1", "min_raise_to": 300, "seat": 0, "stack_after": 9800, "street": "preflop", "to_call": 100}, "ts": "2025-10-16T06:03:38.415253+00:00", "type": "action"}
+{"payload": {"board": ["Td", "9s", "3d"], "hand_id": "401-0-1", "street": "flop"}, "ts": "2025-10-16T06:03:38.415498+00:00", "type": "street_transition"}
+{"payload": {"action": "raise_to", "amount": 200, "bet": 200, "elapsed_ms": 16218, "hand_id": "401-0-1", "min_raise_to": 100, "seat": 1, "stack_after": 9600, "street": "flop", "to_call": 0}, "ts": "2025-10-16T06:03:54.632557+00:00", "type": "action"}
+{"payload": {"action": "raise_to", "amount": 1000, "bet": 1000, "elapsed_ms": 2231, "hand_id": "401-0-1", "min_raise_to": 400, "seat": 0, "stack_after": 8800, "street": "flop", "to_call": 200}, "ts": "2025-10-16T06:03:56.864532+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 200, "elapsed_ms": 44239, "hand_id": "401-0-1", "min_raise_to": 1800, "seat": 1, "stack_after": 9600, "street": "flop", "to_call": 800}, "ts": "2025-10-16T06:04:41.102941+00:00", "type": "action"}
+{"payload": {"board": ["Td", "9s", "3d"], "contributions": {"0": 1200, "1": 400}, "hand_id": "401-0-1", "payouts": {"0": 1600}, "standings": {"0": {"cards": ["Th", "9h"], "stack": 8800}, "1": {"cards": ["Kh", "6s"], "stack": 9600}}}, "ts": "2025-10-16T06:04:41.104058+00:00", "type": "showdown"}
+{"payload": {"contributions": {"0": 1200, "1": 400}, "payouts": {"0": 1600}}, "ts": "2025-10-16T06:04:41.104144+00:00", "type": "hand_end"}
+{"payload": {"button_seat": 0, "hand_id": "401-1-1", "hand_index": 1, "replica_id": 1, "rng_tag": "401:1:1", "seats": {"0": {"name": "DeepSeek", "stack": 10000}, "1": {"name": "GPT5", "stack": 10000}}, "seed": 401, "table_id": "green-hu"}, "ts": "2025-10-16T06:04:41.104562+00:00", "type": "hand_start"}
+{"payload": {"cards": ["Qs", "Ac"], "hand_id": "401-1-1", "seat": 1}, "ts": "2025-10-16T06:04:41.104603+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["6d", "Ad"], "hand_id": "401-1-1", "seat": 0}, "ts": "2025-10-16T06:04:41.104622+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 1, "type": "small"}, "ts": "2025-10-16T06:04:41.104651+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 0, "type": "big"}, "ts": "2025-10-16T06:04:41.104668+00:00", "type": "blind"}
+{"payload": {"action": "check", "amount": null, "bet": 100, "elapsed_ms": 1459, "hand_id": "401-1-1", "min_raise_to": 200, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 0}, "ts": "2025-10-16T06:04:42.563687+00:00", "type": "action"}
+{"payload": {"action": "raise_to", "amount": 400, "bet": 400, "elapsed_ms": 12651, "hand_id": "401-1-1", "min_raise_to": 200, "seat": 1, "stack_after": 9600, "street": "preflop", "to_call": 50}, "ts": "2025-10-16T06:04:55.214057+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 100, "elapsed_ms": 1745, "hand_id": "401-1-1", "min_raise_to": 700, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 300}, "ts": "2025-10-16T06:04:56.959227+00:00", "type": "action"}
+{"payload": {"board": [], "contributions": {"0": 100, "1": 400}, "hand_id": "401-1-1", "payouts": {"1": 500}, "standings": {"0": {"cards": ["6d", "Ad"], "stack": 9900}, "1": {"cards": ["Qs", "Ac"], "stack": 9600}}}, "ts": "2025-10-16T06:04:56.959442+00:00", "type": "showdown"}
+{"payload": {"contributions": {"0": 100, "1": 400}, "payouts": {"1": 500}}, "ts": "2025-10-16T06:04:56.959540+00:00", "type": "hand_end"}
+{"payload": {"button_seat": 0, "hand_id": "401-2-1", "hand_index": 2, "replica_id": 1, "rng_tag": "401:2:1", "seats": {"0": {"name": "DeepSeek", "stack": 10000}, "1": {"name": "GPT5", "stack": 10000}}, "seed": 401, "table_id": "green-hu"}, "ts": "2025-10-16T06:04:56.959976+00:00", "type": "hand_start"}
+{"payload": {"cards": ["4c", "4d"], "hand_id": "401-2-1", "seat": 1}, "ts": "2025-10-16T06:04:56.960053+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["2s", "Td"], "hand_id": "401-2-1", "seat": 0}, "ts": "2025-10-16T06:04:56.960091+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 1, "type": "small"}, "ts": "2025-10-16T06:04:56.960132+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 0, "type": "big"}, "ts": "2025-10-16T06:04:56.960166+00:00", "type": "blind"}
+{"payload": {"action": "check", "amount": null, "bet": 100, "elapsed_ms": 1736, "hand_id": "401-2-1", "min_raise_to": 200, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 0}, "ts": "2025-10-16T06:04:58.695852+00:00", "type": "action"}
+{"payload": {"action": "raise_to", "amount": 400, "bet": 400, "elapsed_ms": 15567, "hand_id": "401-2-1", "min_raise_to": 200, "seat": 1, "stack_after": 9600, "street": "preflop", "to_call": 50}, "ts": "2025-10-16T06:05:14.262928+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 100, "elapsed_ms": 1943, "hand_id": "401-2-1", "min_raise_to": 700, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 300}, "ts": "2025-10-16T06:05:16.206955+00:00", "type": "action"}
+{"payload": {"board": [], "contributions": {"0": 100, "1": 400}, "hand_id": "401-2-1", "payouts": {"1": 500}, "standings": {"0": {"cards": ["2s", "Td"], "stack": 9900}, "1": {"cards": ["4c", "4d"], "stack": 9600}}}, "ts": "2025-10-16T06:05:16.207189+00:00", "type": "showdown"}
+{"payload": {"contributions": {"0": 100, "1": 400}, "payouts": {"1": 500}}, "ts": "2025-10-16T06:05:16.207281+00:00", "type": "hand_end"}
+{"payload": {"button_seat": 0, "hand_id": "401-3-1", "hand_index": 3, "replica_id": 1, "rng_tag": "401:3:1", "seats": {"0": {"name": "DeepSeek", "stack": 10000}, "1": {"name": "GPT5", "stack": 10000}}, "seed": 401, "table_id": "green-hu"}, "ts": "2025-10-16T06:05:16.207867+00:00", "type": "hand_start"}
+{"payload": {"cards": ["8c", "6d"], "hand_id": "401-3-1", "seat": 1}, "ts": "2025-10-16T06:05:16.207989+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["2c", "7c"], "hand_id": "401-3-1", "seat": 0}, "ts": "2025-10-16T06:05:16.208044+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 1, "type": "small"}, "ts": "2025-10-16T06:05:16.208094+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 0, "type": "big"}, "ts": "2025-10-16T06:05:16.208146+00:00", "type": "blind"}
+{"payload": {"action": "check", "amount": null, "bet": 100, "elapsed_ms": 2254, "hand_id": "401-3-1", "min_raise_to": 200, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 0}, "ts": "2025-10-16T06:05:18.461833+00:00", "type": "action"}
+{"payload": {"action": "raise_to", "amount": 200, "bet": 200, "elapsed_ms": 17817, "hand_id": "401-3-1", "min_raise_to": 200, "seat": 1, "stack_after": 9800, "street": "preflop", "to_call": 50}, "ts": "2025-10-16T06:05:36.278155+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 100, "elapsed_ms": 1946, "hand_id": "401-3-1", "min_raise_to": 300, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 100}, "ts": "2025-10-16T06:05:38.224046+00:00", "type": "action"}
+{"payload": {"board": [], "contributions": {"0": 100, "1": 200}, "hand_id": "401-3-1", "payouts": {"1": 300}, "standings": {"0": {"cards": ["2c", "7c"], "stack": 9900}, "1": {"cards": ["8c", "6d"], "stack": 9800}}}, "ts": "2025-10-16T06:05:38.224637+00:00", "type": "showdown"}
+{"payload": {"contributions": {"0": 100, "1": 200}, "payouts": {"1": 300}}, "ts": "2025-10-16T06:05:38.224704+00:00", "type": "hand_end"}
+{"payload": {"button_seat": 0, "hand_id": "401-4-1", "hand_index": 4, "replica_id": 1, "rng_tag": "401:4:1", "seats": {"0": {"name": "DeepSeek", "stack": 10000}, "1": {"name": "GPT5", "stack": 10000}}, "seed": 401, "table_id": "green-hu"}, "ts": "2025-10-16T06:05:38.224982+00:00", "type": "hand_start"}
+{"payload": {"cards": ["4h", "Kh"], "hand_id": "401-4-1", "seat": 1}, "ts": "2025-10-16T06:05:38.225047+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["5c", "Tc"], "hand_id": "401-4-1", "seat": 0}, "ts": "2025-10-16T06:05:38.225072+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 1, "type": "small"}, "ts": "2025-10-16T06:05:38.225092+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 0, "type": "big"}, "ts": "2025-10-16T06:05:38.225111+00:00", "type": "blind"}
+{"payload": {"action": "check", "amount": null, "bet": 100, "elapsed_ms": 1946, "hand_id": "401-4-1", "min_raise_to": 200, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 0}, "ts": "2025-10-16T06:05:40.170733+00:00", "type": "action"}
+{"payload": {"action": "raise_to", "amount": 200, "bet": 200, "elapsed_ms": 8294, "hand_id": "401-4-1", "min_raise_to": 200, "seat": 1, "stack_after": 9800, "street": "preflop", "to_call": 50}, "ts": "2025-10-16T06:05:48.464865+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 100, "elapsed_ms": 1946, "hand_id": "401-4-1", "min_raise_to": 300, "seat": 0, "stack_after": 9900, "street": "preflop", "to_call": 100}, "ts": "2025-10-16T06:05:50.410643+00:00", "type": "action"}
+{"payload": {"board": [], "contributions": {"0": 100, "1": 200}, "hand_id": "401-4-1", "payouts": {"1": 300}, "standings": {"0": {"cards": ["5c", "Tc"], "stack": 9900}, "1": {"cards": ["4h", "Kh"], "stack": 9800}}}, "ts": "2025-10-16T06:05:50.410868+00:00", "type": "showdown"}
+{"payload": {"contributions": {"0": 100, "1": 200}, "payouts": {"1": 300}}, "ts": "2025-10-16T06:05:50.410957+00:00", "type": "hand_end"}

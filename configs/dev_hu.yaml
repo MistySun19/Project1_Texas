@@ -1,0 +1,11 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [101, 102]
+hands_per_seed: 50
+replicas: 2
+opponent_mix:
+  random-hu: 0.5
+  tag-hu: 0.5

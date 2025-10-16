@@ -1,0 +1,10 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [301]
+hands_per_seed: 5   # per replica
+replicas: 2         # Duplicate-HU A/B seats -> total 10 hands per opponent
+opponent_mix:
+  random-hu: 1.0
