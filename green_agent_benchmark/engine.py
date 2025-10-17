@@ -188,8 +188,12 @@ class HoldemEngine:
         active_seats = [seat for seat in players]
         board_cards: List[Card] = []
         # Blinds
-        small_blind_seat = seat_after(button_seat, self.config.seat_count)
-        big_blind_seat = seat_after(small_blind_seat, self.config.seat_count)
+        if self.config.seat_count == 2:
+            small_blind_seat = button_seat
+            big_blind_seat = seat_after(button_seat, self.config.seat_count)
+        else:
+            small_blind_seat = seat_after(button_seat, self.config.seat_count)
+            big_blind_seat = seat_after(small_blind_seat, self.config.seat_count)
 
         self._post_blind(players[small_blind_seat], self.config.small_blind, contributions)
         self._post_blind(players[big_blind_seat], self.config.big_blind, contributions)
@@ -286,7 +290,13 @@ class HoldemEngine:
                     if desired is None:
                         raise IllegalActionError("raise_to requires amount")
                     added, highest, last_raise_size = self._apply_raise_to(
-                        player, desired, to_call, min_raise_to, highest, contributions
+                        player,
+                        desired,
+                        to_call,
+                        min_raise_to,
+                        highest,
+                        last_raise_size,
+                        contributions,
                     )
                     pot += added
 
@@ -393,7 +403,7 @@ class HoldemEngine:
         order = compute_order(street, self.config.seat_count, button_seat)
         betting_round(order, street, 0, self.config.big_blind)
 
-        winners = self._resolve_showdown(players, board_cards, contributions)
+        winners = self._resolve_showdown(players, board_cards, contributions, button_seat)
         self._announce_showdown(hand_id, board_cards, winners, contributions, players)
         return self._apply_payouts(players, contributions, winners)
 
@@ -420,15 +430,20 @@ class HoldemEngine:
         to_call: int,
         min_raise_to: int,
         highest_bet: int,
+        last_raise_size: int,
         contributions: Dict[int, int],
     ) -> Tuple[int, int, int]:
-        if desired < min_raise_to:
-            desired = min_raise_to
-        desired = min(desired, player.bet + player.stack)
-        raise_amount = desired - player.bet
-        if raise_amount <= to_call:
-            raise_amount = to_call + self.config.big_blind
-            desired = player.bet + raise_amount
+        max_total = player.bet + player.stack
+        call_total = player.bet + to_call
+
+        if max_total >= min_raise_to:
+            desired = max(desired, min_raise_to)
+        else:
+            desired = min(desired, max_total)
+
+        desired = max(desired, call_total)
+        desired = min(desired, max_total)
+
         added = desired - player.bet
         player.stack -= added
         player.bet = desired
@@ -436,7 +451,10 @@ class HoldemEngine:
         if player.stack == 0:
             player.all_in = True
         new_highest = max(highest_bet, desired)
-        new_last_raise = desired - highest_bet
+        if desired >= min_raise_to and desired > highest_bet:
+            new_last_raise = desired - highest_bet
+        else:
+            new_last_raise = last_raise_size
         return added, new_highest, new_last_raise
 
     def _post_blind(self, player: PlayerRuntimeState, amount: int, contributions: Dict[int, int]) -> None:
@@ -507,6 +525,7 @@ class HoldemEngine:
         players: Dict[int, PlayerRuntimeState],
         board_cards: Sequence[Card],
         contributions: Dict[int, int],
+        button_seat: int,
     ) -> Dict[int, int]:
         active = [p for p in players.values() if not p.folded]
         showdowns = {p.seat_id: best_hand_rank(p.hole_cards + list(board_cards)) for p in active}
@@ -523,10 +542,21 @@ class HoldemEngine:
             for seat in winners:
                 results[seat] += share
             if remainder:
-                winners_sorted = sorted(winners)
-                for i in range(remainder):
-                    results[winners_sorted[i]] += 1
+                for seat in self._clockwise_order_from(button_seat):
+                    if seat in winners:
+                        results[seat] += 1
+                        remainder -= 1
+                        if remainder == 0:
+                            break
         return results
+
+    def _clockwise_order_from(self, button_seat: int) -> List[int]:
+        order: List[int] = []
+        seat = seat_after(button_seat, self.config.seat_count)
+        for _ in range(self.config.seat_count):
+            order.append(seat)
+            seat = seat_after(seat, self.config.seat_count)
+        return order
 
     def _build_side_pots(
         self,

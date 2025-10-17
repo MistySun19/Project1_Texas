@@ -1,5 +1,6 @@
 {
   "Random": {
+<<<<<<< HEAD
     "bb_per_100": -129.375,
     "bb_per_100_ci": [
       -154.61,
@@ -10,12 +11,25 @@
       "decision_time_ms": {
         "mean": 1.0,
         "samples": 533
+=======
+    "bb_per_100": -8.0,
+    "bb_per_100_ci": [
+      -54.059999999999995,
+      38.059999999999995
+    ],
+    "behavior": {
+      "af": 118.0,
+      "decision_time_ms": {
+        "mean": 1.0,
+        "samples": 678
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
       },
       "pfr": {
         "count": 82,
         "rate": 0.41
       },
       "postflop": {
+<<<<<<< HEAD
         "calls": 3,
         "raises": 153
       },
@@ -26,6 +40,18 @@
       "wt_sd": {
         "count": 159,
         "rate": 1.4587155963302751
+=======
+        "calls": 2,
+        "raises": 236
+      },
+      "vpip": {
+        "count": 113,
+        "rate": 0.565
+      },
+      "wt_sd": {
+        "count": 156,
+        "rate": 0.9873417721518988
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
       }
     },
     "hands": 200,
@@ -33,11 +59,16 @@
       "count": 0,
       "per_hand": 0.0
     },
+<<<<<<< HEAD
     "match_points": -1,
+=======
+    "match_points": 0,
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
     "timeouts": {
       "count": 0,
       "per_hand": 0.0
     },
+<<<<<<< HEAD
     "total_delta_chips": -25875
   },
   "TAG": {
@@ -51,12 +82,28 @@
       "decision_time_ms": {
         "mean": 1.0,
         "samples": 599
+=======
+    "total_delta_chips": -1600
+  },
+  "TAG": {
+    "bb_per_100": 8.0,
+    "bb_per_100_ci": [
+      -38.059999999999995,
+      54.059999999999995
+    ],
+    "behavior": {
+      "af": 0.021367521367521368,
+      "decision_time_ms": {
+        "mean": 1.0,
+        "samples": 813
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
       },
       "pfr": {
         "count": 10,
         "rate": 0.05
       },
       "postflop": {
+<<<<<<< HEAD
         "calls": 151,
         "raises": 6
       },
@@ -67,6 +114,18 @@
       "wt_sd": {
         "count": 148,
         "rate": 1.3577981651376148
+=======
+        "calls": 234,
+        "raises": 5
+      },
+      "vpip": {
+        "count": 135,
+        "rate": 0.675
+      },
+      "wt_sd": {
+        "count": 200,
+        "rate": 1.2658227848101267
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
       }
     },
     "hands": 200,
@@ -74,11 +133,19 @@
       "count": 0,
       "per_hand": 0.0
     },
+<<<<<<< HEAD
     "match_points": 1,
+=======
+    "match_points": 0,
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
     "timeouts": {
       "count": 0,
       "per_hand": 0.0
     },
+<<<<<<< HEAD
     "total_delta_chips": 25875
+=======
+    "total_delta_chips": 1600
+>>>>>>> c2860e5 (Fix engine.py: 修改了_apply_raise_to函数中的最小加注和短筹all in问题，根据筹码能力强制满足最小加注，允许短筹 all-in，同时仅在达成完整加注时刷新 last_raise_size，避免错误重新打开加注窗口（line227-255, line423-455）；修改了Heads up对局中的盲注位置问题，让按钮位承担小盲、对手承担大盲（line191-196）；添加了摊牌时余数筹码分配顺序问题，并将按钮信息传入结算逻辑(line403-405, 520-548, 550-556)。)
   }
 }
