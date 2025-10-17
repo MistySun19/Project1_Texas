@@ -1,0 +1,10 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [101]        # 只用1个seed
+hands_per_seed: 1   # 每个replica只打1手
+replicas: 2         # 2个replica = 总共2手牌
+opponent_mix:
+  random-hu: 1.0    # 对手是随机策略，最快
