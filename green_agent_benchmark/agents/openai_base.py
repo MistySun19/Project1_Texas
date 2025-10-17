@@ -12,13 +12,16 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 try:
     from openai import OpenAI
+    from openai import RateLimitError
 except ImportError:  # pragma: no cover - optional dependency
     OpenAI = None  # type: ignore
+    RateLimitError = Exception  # type: ignore
 
 from ..schemas import ActionRequest, ActionResponse
 
@@ -62,6 +65,8 @@ class OpenAICompatibleAgent:
     dry_run: bool = False
     name: Optional[str] = None
     use_responses: bool = True
+    max_retries: int = 4
+    retry_delay: float = 5.0
 
     env_prefix: str = field(default="OPENAI", init=False)
     default_model: str = field(default="gpt-5.0-mini", init=False)
@@ -113,28 +118,43 @@ class OpenAICompatibleAgent:
         prompt = self._build_prompt(request)
         print(f"{debug_prefix} sending request to API | model={self.model} | base={self.base_url}")
 
-        if self.use_responses:
-            payload = {
-                "model": self.model,
-                "input": [
-                    {"role": "system", "content": self._system_message()},
-                    {"role": "user", "content": prompt},
-                ],
-            }
-            if self.temperature is not None:
-                payload["temperature"] = self.temperature
-            response = self._client.responses.create(**payload)
-            content = self._extract_responses_text(response)
-        else:
-            messages = [
-                {"role": "system", "content": self._system_message()},
-                {"role": "user", "content": prompt},
-            ]
-            payload = {"model": self.model, "messages": messages}
-            if self.temperature is not None:
-                payload["temperature"] = self.temperature
-            response = self._client.chat.completions.create(**payload)
-            content = self._extract_chat_text(response)
+        # Retry logic for rate limiting
+        for attempt in range(self.max_retries + 1):
+            try:
+                if self.use_responses:
+                    payload = {
+                        "model": self.model,
+                        "input": [
+                            {"role": "system", "content": self._system_message()},
+                            {"role": "user", "content": prompt},
+                        ],
+                    }
+                    if self.temperature is not None:
+                        payload["temperature"] = self.temperature
+                    response = self._client.responses.create(**payload)
+                    content = self._extract_responses_text(response)
+                else:
+                    messages = [
+                        {"role": "system", "content": self._system_message()},
+                        {"role": "user", "content": prompt},
+                    ]
+                    payload = {"model": self.model, "messages": messages}
+                    if self.temperature is not None:
+                        payload["temperature"] = self.temperature
+                    response = self._client.chat.completions.create(**payload)
+                    content = self._extract_chat_text(response)
+                break  # Get response successfully, exit the retry loop
+            except RateLimitError as e:
+                if attempt < self.max_retries:
+                    wait_time = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"{debug_prefix} Rate limit exceeded. Retrying in {wait_time} seconds... (attempt {attempt + 1}/{self.max_retries})")
+                    time.sleep(wait_time)
+                else:
+                    print(f"{debug_prefix} Max retries exceeded. Falling back to safe action.")
+                    return _fallback_action(request)
+            except Exception as e:
+                print(f"{debug_prefix} Unexpected error: {e}. Falling back to safe action.")
+                return _fallback_action(request)
 
         action = self._parse_text(content, request)
         if action is None:
