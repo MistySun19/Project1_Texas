@@ -48,6 +48,7 @@ class ActionResponse:
     action: ActionLiteral
     amount: Optional[int] = None
     metadata: Optional[Dict[str, str]] = None
+    wait_time_ms: int = 0
 
 
 @dataclass(slots=True)

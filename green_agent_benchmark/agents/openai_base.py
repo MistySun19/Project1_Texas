@@ -12,26 +12,29 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 try:
     from openai import OpenAI
+    from openai import RateLimitError
 except ImportError:  # pragma: no cover - optional dependency
     OpenAI = None  # type: ignore
+    RateLimitError = Exception  # type: ignore
 
 from ..schemas import ActionRequest, ActionResponse
 
 
-def _fallback_action(request: ActionRequest) -> ActionResponse:
+def _fallback_action(request: ActionRequest, wait_time_ms: int = 0) -> ActionResponse:
     """
     Deterministic safe fallback used when the model output cannot be parsed.
     """
     if "check" in request.legal_actions:
-        return ActionResponse(action="check")
+        return ActionResponse(action="check", wait_time_ms=wait_time_ms)
     if "call" in request.legal_actions:
-        return ActionResponse(action="call")
-    return ActionResponse(action="fold")
+        return ActionResponse(action="call", wait_time_ms=wait_time_ms)
+    return ActionResponse(action="fold", wait_time_ms=wait_time_ms)
 
 
 def _legal_raise_amount(request: ActionRequest, amount: int) -> int:
@@ -62,6 +65,8 @@ class OpenAICompatibleAgent:
     dry_run: bool = False
     name: Optional[str] = None
     use_responses: bool = True
+    max_retries: int = 4
+    retry_delay: float = 5.0
 
     env_prefix: str = field(default="OPENAI", init=False)
     default_model: str = field(default="gpt-5.0-mini", init=False)
@@ -113,38 +118,55 @@ class OpenAICompatibleAgent:
         prompt = self._build_prompt(request)
         print(f"{debug_prefix} sending request to API | model={self.model} | base={self.base_url}")
 
-        if self.use_responses:
-            payload = {
-                "model": self.model,
-                "input": [
-                    {"role": "system", "content": self._system_message()},
-                    {"role": "user", "content": prompt},
-                ],
-            }
-            if self.temperature is not None:
-                payload["temperature"] = self.temperature
-            response = self._client.responses.create(**payload)
-            content = self._extract_responses_text(response)
-        else:
-            messages = [
-                {"role": "system", "content": self._system_message()},
-                {"role": "user", "content": prompt},
-            ]
-            payload = {"model": self.model, "messages": messages}
-            if self.temperature is not None:
-                payload["temperature"] = self.temperature
-            response = self._client.chat.completions.create(**payload)
-            content = self._extract_chat_text(response)
+        # Retry logic for rate limiting
+        wait_time_total = 0
+        for attempt in range(self.max_retries + 1):
+            try:
+                if self.use_responses:
+                    payload = {
+                        "model": self.model,
+                        "input": [
+                            {"role": "system", "content": self._system_message()},
+                            {"role": "user", "content": prompt},
+                        ],
+                    }
+                    if self.temperature is not None:
+                        payload["temperature"] = self.temperature
+                    response = self._client.responses.create(**payload)
+                    content = self._extract_responses_text(response)
+                else:
+                    messages = [
+                        {"role": "system", "content": self._system_message()},
+                        {"role": "user", "content": prompt},
+                    ]
+                    payload = {"model": self.model, "messages": messages}
+                    if self.temperature is not None:
+                        payload["temperature"] = self.temperature
+                    response = self._client.chat.completions.create(**payload)
+                    content = self._extract_chat_text(response)
+                break  # Get response successfully, exit the retry loop
+            except RateLimitError as e:
+                if attempt < self.max_retries:
+                    wait_time = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    wait_time_total += wait_time * 1000
+                    print(f"{debug_prefix} Rate limit exceeded. Retrying in {wait_time} seconds... (attempt {attempt + 1}/{self.max_retries})")
+                    time.sleep(wait_time)
+                else:
+                    print(f"{debug_prefix} Max retries exceeded. Falling back to safe action.")
+                    return _fallback_action(request, wait_time_ms=wait_time_total)
+            except Exception as e:
+                print(f"{debug_prefix} Unexpected error: {e}. Falling back to safe action.")
+                return _fallback_action(request, wait_time_ms=wait_time_total)
 
         action = self._parse_text(content, request)
         if action is None:
             print(f"{debug_prefix} failed to parse response, falling back")
-            return _fallback_action(request)
-
+            return _fallback_action(request, wait_time_ms=wait_time_total)
         print(
             f"{debug_prefix} parsed action: {action.action}"
             + (f" to {action.amount}" if action.amount is not None else "")
         )
+        setattr(action, "wait_time_ms", wait_time_total)
         return action
 
     # --- prompt and parsing helpers -------------------------------------
