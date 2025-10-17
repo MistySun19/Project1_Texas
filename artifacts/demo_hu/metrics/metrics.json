@@ -1,31 +1,31 @@
 {
   "Random": {
-    "bb_per_100": 45.0,
+    "bb_per_100": -129.375,
     "bb_per_100_ci": [
-      -69.65999999999997,
-      159.65999999999997
+      -154.61,
+      -104.14
     ],
     "behavior": {
-      "af": 42.75,
+      "af": 51.0,
       "decision_time_ms": {
         "mean": 1.0,
-        "samples": 576
+        "samples": 533
       },
       "pfr": {
-        "count": 78,
-        "rate": 0.39
+        "count": 82,
+        "rate": 0.41
       },
       "postflop": {
-        "calls": 4,
-        "raises": 171
+        "calls": 3,
+        "raises": 153
       },
       "vpip": {
         "count": 120,
         "rate": 0.6
       },
       "wt_sd": {
-        "count": 166,
-        "rate": 1.328
+        "count": 159,
+        "rate": 1.4587155963302751
       }
     },
     "hands": 200,
@@ -33,52 +33,52 @@
       "count": 0,
       "per_hand": 0.0
     },
-    "match_points": 0,
+    "match_points": -1,
     "timeouts": {
       "count": 0,
       "per_hand": 0.0
     },
-    "total_delta_chips": 9000
+    "total_delta_chips": -25875
   },
   "TAG": {
-    "bb_per_100": -45.0,
+    "bb_per_100": 129.375,
     "bb_per_100_ci": [
-      -159.65999999999997,
-      69.65999999999997
+      104.14,
+      154.61
     ],
     "behavior": {
-      "af": 0.05357142857142857,
+      "af": 0.039735099337748346,
       "decision_time_ms": {
         "mean": 1.0,
-        "samples": 659
+        "samples": 599
       },
       "pfr": {
         "count": 10,
         "rate": 0.05
       },
       "postflop": {
-        "calls": 168,
-        "raises": 9
+        "calls": 151,
+        "raises": 6
       },
       "vpip": {
-        "count": 88,
-        "rate": 0.44
+        "count": 79,
+        "rate": 0.395
       },
       "wt_sd": {
-        "count": 152,
-        "rate": 1.2357723577235773
+        "count": 148,
+        "rate": 1.3577981651376148
       }
     },
     "hands": 200,
     "illegal_actions": {
-      "count": 3,
-      "per_hand": 0.015
+      "count": 0,
+      "per_hand": 0.0
     },
-    "match_points": 0,
+    "match_points": 1,
     "timeouts": {
       "count": 0,
       "per_hand": 0.0
     },
-    "total_delta_chips": -9000
+    "total_delta_chips": 25875
   }
 }

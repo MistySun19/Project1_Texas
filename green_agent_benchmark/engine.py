@@ -241,7 +241,10 @@ class HoldemEngine:
 
                 start = time.perf_counter()
                 response = agents[seat].act(request)
-                elapsed_ms = (time.perf_counter() - start) * 1000
+                wait_time_ms = getattr(response, "wait_time_ms", 0)
+                if wait_time_ms > 0:
+                    print(f"[Engine] Agent {agents[seat].name} wait_time_ms={wait_time_ms}")
+                elapsed_ms = (time.perf_counter() - start) * 1000 - wait_time_ms
 
                 if elapsed_ms > self.config.time_per_decision_ms:
                     player.timeouts += 1
