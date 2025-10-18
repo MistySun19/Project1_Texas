@@ -14,7 +14,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from openai import OpenAI
@@ -72,6 +72,9 @@ class OpenAICompatibleAgent:
     default_model: str = field(default="gpt-5.0-mini", init=False)
     default_name: str = field(default="LLM", init=False)
     default_base_url: Optional[str] = field(default=None, init=False)
+    metrics_path: Optional[str] = None
+    metrics_summary: Optional[Dict[str, Any]] = field(default=None, init=False, repr=False)
+    _seat_names: Dict[int, str] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self) -> None:
         model_env = os.getenv(f"{self.env_prefix}_MODEL")
@@ -97,19 +100,60 @@ class OpenAICompatibleAgent:
                 client_kwargs["base_url"] = self.base_url
             self._client = OpenAI(**client_kwargs)
 
+        self._load_metrics()
+
     # --- lifecycle hooks -------------------------------------------------
 
-    def reset(self, seat_id: int, table_config: Dict[str, int]) -> None:
-        del seat_id, table_config
+    def reset(self, seat_id: int, table_config: Dict[str, Any]) -> None:
+        del seat_id
+        self._seat_names = {
+            int(seat): str(name)
+            for seat, name in (table_config.get("seat_names") or {}).items()
+        }
+        self._load_metrics()
+
+    # --- internal helpers ------------------------------------------------
+
+    def _load_metrics(self) -> None:
+        metrics_path = self.metrics_path or os.getenv(f"{self.env_prefix}_METRICS_PATH")
+        if not metrics_path:
+            self.metrics_summary = None
+            return
+        try:
+            with open(metrics_path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except FileNotFoundError:
+            self.metrics_summary = None
+            return
+        except Exception as exc:
+            print(f"[{self.name}Agent] Failed to load metrics from {metrics_path}: {exc}")
+            self.metrics_summary = None
+            return
+
+        summary: Optional[Dict[str, Any]] = None
+        if isinstance(data, dict):
+            key = self.name or ""
+            summary = data.get(key)
+            if summary is None and key:
+                lowered = key.lower()
+                for candidate, stats in data.items():
+                    if isinstance(candidate, str) and candidate.lower() == lowered:
+                        summary = stats
+                        break
+        self.metrics_summary = summary if isinstance(summary, dict) else None
 
     # --- action selection ------------------------------------------------
 
     def act(self, request: ActionRequest) -> ActionResponse:
         debug_prefix = f"[{self.name}Agent]"
+        street = request.action_history[-1].street if request.action_history else "preflop"
+        sb = request.blinds.get("sb")
+        bb = request.blinds.get("bb")
+        (sb_seat, sb_name), (bb_seat, bb_name) = self._blind_info(request)
         print(
-            f"{debug_prefix} act called | hand_id={request.hand_id} | "
-            f"street={request.action_history[-1].street if request.action_history else 'preflop'} "
-            f"| to_call={request.to_call} | legal={list(request.legal_actions)}"
+            f"{debug_prefix} act called | hand_id={request.hand_id} | street={street} | "
+            f"blinds=SB {sb} / BB {bb} | SB seat {sb_seat} ({sb_name}) | "
+            f"BB seat {bb_seat} ({bb_name}) | to_call={request.to_call} | legal={list(request.legal_actions)}"
         )
         if self.dry_run or self._client is None:
             print(f"{debug_prefix} dry_run or client unavailable, using fallback action")
@@ -179,6 +223,11 @@ class OpenAICompatibleAgent:
             "Only use actions present in the provided legal actions list. "
             "When raising, supply a numeric target in chips."
         )
+        if isinstance(self.metrics_summary, dict) and self.metrics_summary:
+            base = (
+                f"{base}\nPerformance context: Recent chip results drive evaluation; "
+                "focus on actions that build stack growth while avoiding repeated losses from speculative calls."
+            )
         if self.system_prompt:
             return f"{base}\n{self.system_prompt}"
         return base
@@ -206,6 +255,18 @@ class OpenAICompatibleAgent:
         lines.append(f"- Legal actions: {list(request.legal_actions)}")
         lines.append("Respond with a JSON decision.")
         return "\n".join(lines)
+
+    def _blind_info(self, request: ActionRequest) -> Tuple[Tuple[int, str], Tuple[int, str]]:
+        seat_count = request.seat_count
+        button = request.button_seat
+        if seat_count == 2:
+            sb_seat = button
+        else:
+            sb_seat = (button + 1) % seat_count
+        bb_seat = (sb_seat + 1) % seat_count
+        sb_name = self._seat_names.get(sb_seat, f"seat-{sb_seat}")
+        bb_name = self._seat_names.get(bb_seat, f"seat-{bb_seat}")
+        return (sb_seat, sb_name), (bb_seat, bb_name)
 
     def _extract_responses_text(self, response) -> str:
         try:

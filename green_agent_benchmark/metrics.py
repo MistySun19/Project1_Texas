@@ -98,6 +98,8 @@ def _parse_behavior_from_logs(log_paths: Sequence[pathlib.Path]) -> Dict[str, Di
             "went_sd": 0,
             "postflop_raises": 0,
             "postflop_calls": 0,
+            "call_reward": 0,
+            "call_penalty": 0,
             "decision_times": [],
         }
     )
@@ -128,6 +130,7 @@ def _parse_behavior_from_logs(log_paths: Sequence[pathlib.Path]) -> Dict[str, Di
                             "saw_flop": False,
                             "went_sd": False,
                             "folded": False,
+                            "made_call": False,
                             "decision_times": [],
                         }
                         per_player[name]["hands"] += 1
@@ -160,6 +163,7 @@ def _parse_behavior_from_logs(log_paths: Sequence[pathlib.Path]) -> Dict[str, Di
                                 state["postflop_raises"] += 1
                             elif action == "call":
                                 state["postflop_calls"] += 1
+                                state["made_call"] = True
                         if action == "fold":
                             state["folded"] = True
                     elif event["type"] == "showdown":
@@ -167,10 +171,20 @@ def _parse_behavior_from_logs(log_paths: Sequence[pathlib.Path]) -> Dict[str, Di
                             if not state["folded"]:
                                 state["went_sd"] = True
                     elif event["type"] == "hand_end":
+                        payouts_raw = payload.get("payouts", {})
+                        contributions_raw = payload.get("contributions", {})
+                        payouts = {int(seat): int(amount) for seat, amount in payouts_raw.items()}
+                        contributions = {int(seat): int(amount) for seat, amount in contributions_raw.items()}
                         states = hand_states.pop(hand_id, {})
-                        for state in states.values():
+                        for seat, state in states.items():
                             name = state["player"]
                             agg = per_player[name]
+                            if state["made_call"]:
+                                delta = payouts.get(seat, 0) - contributions.get(seat, 0)
+                                if delta > 0:
+                                    agg["call_reward"] += 1
+                                elif delta < 0:
+                                    agg["call_penalty"] += 1
                             if state["vpip"]:
                                 agg["vpip"] += 1
                             if state["pfr"]:
@@ -209,6 +223,8 @@ def _behaviour_to_summary(behavior: Mapping[str, Any], total_hands: int) -> Dict
     went_sd_count = behavior.get("went_sd", 0)
     postflop_raises = behavior.get("postflop_raises", 0)
     postflop_calls = behavior.get("postflop_calls", 0)
+    call_reward = behavior.get("call_reward", 0)
+    call_penalty = behavior.get("call_penalty", 0)
     decision_times = behavior.get("decision_times", [])
 
     af = postflop_raises / postflop_calls if postflop_calls else float(postflop_raises)
@@ -233,6 +249,8 @@ def _behaviour_to_summary(behavior: Mapping[str, Any], total_hands: int) -> Dict
         "postflop": {
             "raises": postflop_raises,
             "calls": postflop_calls,
+            "call_reward_hands": call_reward,
+            "call_penalty_hands": call_penalty,
         },
         "decision_time_ms": {
             "mean": mean_decision,

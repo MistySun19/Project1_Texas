@@ -4,18 +4,35 @@ No-Limit Texas Hold'em state machine used by the Green Agent Benchmark.
 
 from __future__ import annotations
 
+import enum
 import math
 import random
 import time
-import uuid
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Deque, Dict, Iterator, List, Optional, Sequence, Tuple
 
 from .cards import Card, best_hand_rank, new_deck
 from .logging_utils import NDJSONLogger
 from .schemas import ActionHistoryEntry, ActionRequest, ActionResponse
 
 STREETS = ("preflop", "flop", "turn", "river")
+
+
+class HandState(enum.Enum):
+    INIT = enum.auto()
+    POST_BLINDS = enum.auto()
+    DEAL_HOLE = enum.auto()
+    PRE_FLOP = enum.auto()
+    DEAL_FLOP = enum.auto()
+    FLOP = enum.auto()
+    DEAL_TURN = enum.auto()
+    TURN = enum.auto()
+    DEAL_RIVER = enum.auto()
+    RIVER = enum.auto()
+    SHOWDOWN = enum.auto()
+    AWARD_POTS = enum.auto()
+    CLEANUP = enum.auto()
 
 
 @dataclass(slots=True)
@@ -27,6 +44,12 @@ class EngineConfig:
     table_id: str
     time_per_decision_ms: int = 60000
     auto_top_up: bool = True
+    ante: int = 0
+    straddle: bool = False
+    runout_when_all_in: bool = True
+    odd_chips_rule: str = "button_left"
+    timeout_fallback_policy: str = "check_if_zero_else_fold"
+    illegal_action_fallback_policy: str = "check_if_zero_else_fold"
 
 
 @dataclass(slots=True)
@@ -40,6 +63,7 @@ class PlayerRuntimeState:
     all_in: bool = False
     illegal_actions: int = 0
     timeouts: int = 0
+    sitting_out: bool = False
 
     def reset_for_hand(self, starting_stack: int) -> None:
         self.stack = starting_stack
@@ -47,6 +71,20 @@ class PlayerRuntimeState:
         self.folded = False
         self.all_in = False
         self.hole_cards = []
+        self.sitting_out = False
+
+
+@dataclass(slots=True)
+class BettingRoundResult:
+    last_aggressor: Optional[int]
+    aggression_occurred: bool
+    everyone_all_in: bool
+
+
+@dataclass(slots=True)
+class Pot:
+    size: int
+    eligible_seats: List[int]
 
 
 class IllegalActionError(RuntimeError):
@@ -109,7 +147,7 @@ def generate_hand_id(seed: int, hand_index: int, replica_id: int) -> str:
 
 class HoldemEngine:
     """
-    Deterministic heads-up / 6-max engine.
+    Deterministic heads-up / 6-max engine that follows the v1.0 NLHE spec.
     """
 
     def __init__(self, config: EngineConfig, logger: NDJSONLogger) -> None:
@@ -126,13 +164,15 @@ class HoldemEngine:
         agents: Dict[int, AgentInterface],
         deck: Sequence[Card],
     ) -> Dict[int, int]:
-        """
-        Runs one hand and returns per-seat chip deltas relative to the starting stack.
-        """
+        if self.config.straddle:
+            raise NotImplementedError("Straddle support is not implemented in the reference engine.")
+
         rng_tag = f"{seed}:{hand_index}:{replica_id}"
         hand_id = generate_hand_id(seed, hand_index, replica_id)
+
         for player in players.values():
-            player.reset_for_hand(self.config.starting_stack if self.config.auto_top_up else player.stack)
+            starting_stack = self.config.starting_stack if self.config.auto_top_up else player.stack
+            player.reset_for_hand(starting_stack)
 
         for agent in agents.values():
             agent.reset(
@@ -142,6 +182,9 @@ class HoldemEngine:
                     "big_blind": self.config.big_blind,
                     "starting_stack": self.config.starting_stack,
                     "seat_id": agent.seat_id,
+                    "seat_names": {
+                        seat: players[seat].name for seat in players
+                    },
                 }
             )
 
@@ -154,25 +197,138 @@ class HoldemEngine:
                 "hand_index": hand_index,
                 "replica_id": replica_id,
                 "button_seat": button_seat,
+                "blinds": {
+                    "sb": self.config.small_blind,
+                    "bb": self.config.big_blind,
+                },
                 "seats": {
                     seat_id: {
                         "name": players[seat_id].name,
                         "stack": players[seat_id].stack,
                     }
                     for seat_id in range(self.config.seat_count)
+                    if seat_id in players
                 },
                 "rng_tag": rng_tag,
             },
         )
 
+        contributions: Dict[int, int] = {seat: 0 for seat in players}
+        pot = 0
+        board_cards: List[Card] = []
+        action_history: List[ActionHistoryEntry] = []
+
         deck_iter = iter(deck)
-        # Deal hole cards (two per player, button first)
+        self._deal_hole_cards(hand_id, button_seat, players, deck_iter)
+
+        if self.config.ante > 0:
+            for offset in range(self.config.seat_count):
+                seat = (button_seat + offset) % self.config.seat_count
+                player = players.get(seat)
+                if not player or player.sitting_out:
+                    continue
+                pot += self._post_ante(player, self.config.ante, contributions)
+
+        sb_seat, bb_seat = self._blind_seats(button_seat)
+        if sb_seat in players and not players[sb_seat].sitting_out:
+            pot += self._post_blind(players[sb_seat], self.config.small_blind, contributions, "small")
+        if bb_seat in players and not players[bb_seat].sitting_out:
+            pot += self._post_blind(players[bb_seat], self.config.big_blind, contributions, "big")
+
+        current_bet = max((p.bet for p in players.values()), default=0)
+        last_full_raise = self.config.big_blind
+
+        round_result, current_bet, last_full_raise, pot = self._betting_round(
+            street="preflop",
+            hand_id=hand_id,
+            button_seat=button_seat,
+            players=players,
+            agents=agents,
+            contributions=contributions,
+            action_history=action_history,
+            board_cards=board_cards,
+            rng_tag=rng_tag,
+            current_bet=current_bet,
+            last_full_raise=last_full_raise,
+            pot=pot,
+        )
+        showdown_last_aggressor: Optional[int] = (
+            round_result.last_aggressor if round_result.aggression_occurred else None
+        )
+
+        if self._players_remaining(players) == 1:
+            winner = self._remaining_seat(players)
+            payouts = {winner: sum(contributions.values())}
+            self._announce_showdown(hand_id, board_cards, payouts, contributions, players)
+            return self._apply_payouts(players, contributions, payouts)
+
+        auto_runout = round_result.everyone_all_in and self.config.runout_when_all_in
+
+        for street in ("flop", "turn", "river"):
+            if auto_runout:
+                break
+            self._deal_board(street, hand_id, board_cards, deck_iter)
+            self._reset_bets(players)
+            current_bet = 0
+            last_full_raise = 0
+            round_result, current_bet, last_full_raise, pot = self._betting_round(
+                street=street,
+                hand_id=hand_id,
+                button_seat=button_seat,
+                players=players,
+                agents=agents,
+                contributions=contributions,
+                action_history=action_history,
+                board_cards=board_cards,
+                rng_tag=rng_tag,
+                current_bet=current_bet,
+                last_full_raise=last_full_raise,
+                pot=pot,
+            )
+            showdown_last_aggressor = round_result.last_aggressor if round_result.aggression_occurred else None
+
+            if self._players_remaining(players) == 1:
+                winner = self._remaining_seat(players)
+                payouts = {winner: sum(contributions.values())}
+                self._announce_showdown(hand_id, board_cards, payouts, contributions, players)
+                return self._apply_payouts(players, contributions, payouts)
+
+            if round_result.everyone_all_in and self.config.runout_when_all_in:
+                auto_runout = True
+                break
+
+        if auto_runout:
+            self._run_out_board(hand_id, board_cards, deck_iter)
+
+        survivors = self._players_remaining(players)
+        if len(survivors) == 1:
+            winner = survivors[0]
+            payouts = {winner: sum(contributions.values())}
+            self._announce_showdown(hand_id, board_cards, payouts, contributions, players)
+            return self._apply_payouts(players, contributions, payouts)
+
+        payouts = self._resolve_showdown(players, board_cards, contributions, button_seat)
+        self._announce_showdown(hand_id, board_cards, payouts, contributions, players, showdown_last_aggressor)
+        return self._apply_payouts(players, contributions, payouts)
+
+    def _deal_hole_cards(
+        self,
+        hand_id: str,
+        button_seat: int,
+        players: Dict[int, PlayerRuntimeState],
+        deck_iter: Iterator[Card],
+    ) -> None:
         for _ in range(2):
             for offset in range(self.config.seat_count):
                 seat = (button_seat + 1 + offset) % self.config.seat_count
-                players[seat].hole_cards.append(next(deck_iter))
+                player = players.get(seat)
+                if player is None or player.sitting_out:
+                    continue
+                player.hole_cards.append(next(deck_iter))
 
         for seat, player in players.items():
+            if player.sitting_out:
+                continue
             self.logger.log(
                 "deal_hole",
                 {
@@ -182,230 +338,384 @@ class HoldemEngine:
                 },
             )
 
-        pot = 0
-        action_history: List[ActionHistoryEntry] = []
-        contributions = {seat: 0 for seat in players}
-        active_seats = [seat for seat in players]
-        board_cards: List[Card] = []
-        # Blinds
+    def _blind_seats(self, button_seat: int) -> Tuple[int, int]:
         if self.config.seat_count == 2:
-            small_blind_seat = button_seat
-            big_blind_seat = seat_after(button_seat, self.config.seat_count)
+            small_blind = button_seat
+            big_blind = seat_after(small_blind, self.config.seat_count)
+            return small_blind, big_blind
+        small_blind = seat_after(button_seat, self.config.seat_count)
+        big_blind = seat_after(small_blind, self.config.seat_count)
+        return small_blind, big_blind
+
+    def _post_blind(
+        self,
+        player: PlayerRuntimeState,
+        amount: int,
+        contributions: Dict[int, int],
+        blind_type: str,
+    ) -> int:
+        posted = min(amount, player.stack)
+        if posted == 0:
+            player.all_in = True
+            return 0
+        player.stack -= posted
+        player.bet += posted
+        contributions[player.seat_id] += posted
+        if player.stack == 0:
+            player.all_in = True
+        self.logger.log(
+            "blind",
+            {
+                "seat": player.seat_id,
+                "amount": posted,
+                "type": blind_type,
+            },
+        )
+        return posted
+
+    def _post_ante(
+        self,
+        player: PlayerRuntimeState,
+        amount: int,
+        contributions: Dict[int, int],
+    ) -> int:
+        posted = min(amount, player.stack)
+        if posted == 0:
+            player.all_in = True
+            return 0
+        player.stack -= posted
+        contributions[player.seat_id] += posted
+        if player.stack == 0:
+            player.all_in = True
+        self.logger.log(
+            "ante",
+            {
+                "seat": player.seat_id,
+                "amount": posted,
+            },
+        )
+        return posted
+
+    def _deal_board(
+        self,
+        street: str,
+        hand_id: str,
+        board_cards: List[Card],
+        deck_iter: Iterator[Card],
+    ) -> None:
+        next(deck_iter)  # burn card
+        if street == "flop":
+            cards = [next(deck_iter) for _ in range(3)]
         else:
-            small_blind_seat = seat_after(button_seat, self.config.seat_count)
-            big_blind_seat = seat_after(small_blind_seat, self.config.seat_count)
+            cards = [next(deck_iter)]
+        board_cards.extend(cards)
+        self.logger.log(
+            "street_transition",
+            {
+                "hand_id": hand_id,
+                "street": street,
+                "board": [str(card) for card in board_cards],
+            },
+        )
 
-        self._post_blind(players[small_blind_seat], self.config.small_blind, contributions)
-        self._post_blind(players[big_blind_seat], self.config.big_blind, contributions)
-        pot = contributions[small_blind_seat] + contributions[big_blind_seat]
-        street = "preflop"
-        highest_bet = max(p.bet for p in players.values())
-        last_raise = self.config.big_blind
+    def _run_out_board(self, hand_id: str, board_cards: List[Card], deck_iter: Iterator[Card]) -> None:
+        while len(board_cards) < 5:
+            if len(board_cards) == 0:
+                self._deal_board("flop", hand_id, board_cards, deck_iter)
+            elif len(board_cards) == 3:
+                self._deal_board("turn", hand_id, board_cards, deck_iter)
+            elif len(board_cards) == 4:
+                self._deal_board("river", hand_id, board_cards, deck_iter)
+
+    def _betting_round(
+        self,
+        *,
+        street: str,
+        hand_id: str,
+        button_seat: int,
+        players: Dict[int, PlayerRuntimeState],
+        agents: Dict[int, AgentInterface],
+        contributions: Dict[int, int],
+        action_history: List[ActionHistoryEntry],
+        board_cards: Sequence[Card],
+        rng_tag: str,
+        current_bet: int,
+        last_full_raise: int,
+        pot: int,
+    ) -> Tuple[BettingRoundResult, int, int, int]:
+        if self._all_non_folded_all_in(players):
+            return BettingRoundResult(None, False, True), current_bet, last_full_raise, pot
+
         order = compute_order(street, self.config.seat_count, button_seat)
+        active_order = self._active_order(order, players)
+        if not active_order:
+            everyone_all_in = self._all_non_folded_all_in(players)
+            return BettingRoundResult(None, False, everyone_all_in), current_bet, last_full_raise, pot
 
-        def betting_round(order: List[int], street_name: str, highest: int, last_raise_size: int) -> Tuple[int, int]:
-            nonlocal pot
-            acted_since_raise: Dict[int, bool] = {seat: False for seat in players}
-            to_act_cycle = [seat for seat in order if not players[seat].folded and not players[seat].all_in]
-            if not to_act_cycle:
-                return highest, last_raise_size
-            idx = 0
-            while True:
-                seat = to_act_cycle[idx % len(to_act_cycle)]
-                player = players[seat]
-                idx += 1
-                if player.folded or player.all_in:
-                    acted_since_raise[seat] = True
-                    if all(acted_since_raise.values()) and self._betting_round_complete(highest, players):
-                        break
-                    continue
+        acted: Dict[int, bool] = {seat: False for seat in active_order}
+        queue: Deque[int] = deque(active_order)
+        last_aggressor: Optional[int] = None
+        aggression_occurred = False
 
-                to_call = highest - player.bet
-                min_raise_to = max(highest + last_raise_size, highest + self.config.big_blind)
-                legal = self._legal_actions(player, to_call, min_raise_to)
+        while queue:
+            seat = queue.popleft()
+            player = players[seat]
 
-                request = ActionRequest(
-                    seat_count=self.config.seat_count,
-                    table_id=self.config.table_id,
-                    hand_id=hand_id,
-                    seat_id=seat,
-                    button_seat=button_seat,
-                    blinds={"sb": self.config.small_blind, "bb": self.config.big_blind},
-                    stacks={s: players[s].stack for s in players},
-                    pot=pot,
-                    to_call=to_call,
-                    min_raise_to=min_raise_to,
-                    hole_cards=[str(c) for c in player.hole_cards],
-                    board=[str(c) for c in board_cards],
-                    action_history=list(action_history),
-                    legal_actions=legal,
-                    timebank_ms=self.config.time_per_decision_ms,
-                    rng_tag=rng_tag,
-                )
+            if player.folded or player.all_in:
+                active_order = self._active_order(order, players)
+                acted = {s: acted.get(s, False) for s in active_order}
+                continue
 
-                start = time.perf_counter()
-                response = agents[seat].act(request)
-                wait_time_ms = getattr(response, "wait_time_ms", 0)
-                if wait_time_ms > 0:
-                    print(f"[Engine] Agent {agents[seat].name} wait_time_ms={wait_time_ms}")
-                elapsed_ms = (time.perf_counter() - start) * 1000 - wait_time_ms
+            to_call = current_bet - player.bet
+            need_action = to_call > 0 or not acted.get(seat, False)
+            if not need_action:
+                if not queue:
+                    active_order = self._active_order(order, players)
+                    remaining = [
+                        s for s in active_order if (current_bet - players[s].bet) > 0 or not acted.get(s, False)
+                    ]
+                    if remaining:
+                        queue = deque(remaining)
+                    else:
+                        if self._betting_round_complete(current_bet, players):
+                            break
+                        queue = deque(active_order)
+                continue
 
-                if elapsed_ms > self.config.time_per_decision_ms:
-                    player.timeouts += 1
-                    response = self._timeout_fallback(to_call)
-                    self.logger.log(
-                        "penalty",
-                        {
-                            "hand_id": hand_id,
-                            "seat": seat,
-                            "kind": "timeout",
-                            "elapsed_ms": math.ceil(elapsed_ms),
-                            "fallback": response.action,
-                        },
-                    )
+            min_raise_to = self._min_raise_target(current_bet, last_full_raise)
+            allow_raise = not acted.get(seat, False)
+            legal_actions = self._legal_actions(player, to_call, min_raise_to, allow_raise)
 
-                if response.action not in legal:
-                    player.illegal_actions += 1
-                    response = self._illegal_fallback(to_call)
-                    self.logger.log(
-                        "penalty",
-                        {
-                            "hand_id": hand_id,
-                            "seat": seat,
-                            "kind": "illegal_action",
-                            "attempted": getattr(response.metadata or {}, "attempted", None),
-                            "fallback": response.action,
-                        },
-                    )
+            request = ActionRequest(
+                seat_count=self.config.seat_count,
+                table_id=self.config.table_id,
+                hand_id=hand_id,
+                seat_id=seat,
+                button_seat=button_seat,
+                blinds={"sb": self.config.small_blind, "bb": self.config.big_blind},
+                stacks={s: players[s].stack for s in players},
+                pot=pot,
+                to_call=to_call,
+                min_raise_to=min_raise_to,
+                hole_cards=[str(c) for c in player.hole_cards],
+                board=[str(c) for c in board_cards],
+                action_history=list(action_history),
+                legal_actions=list(legal_actions),
+                timebank_ms=self.config.time_per_decision_ms,
+                rng_tag=rng_tag,
+            )
 
-                if response.action == "fold":
-                    self._apply_fold(player)
-                elif response.action == "check":
-                    self._apply_check(player, to_call)
-                elif response.action == "call":
-                    added = self._apply_call(player, to_call, contributions)
-                    pot += added
-                elif response.action == "raise_to":
-                    desired = response.amount
-                    if desired is None:
-                        raise IllegalActionError("raise_to requires amount")
-                    added, highest, last_raise_size = self._apply_raise_to(
-                        player,
-                        desired,
-                        to_call,
-                        min_raise_to,
-                        highest,
-                        last_raise_size,
-                        contributions,
-                    )
-                    pot += added
+            response, elapsed_ms = self._invoke_agent(agents[seat], request)
 
-                action_history.append(
-                    ActionHistoryEntry(
-                        seat_id=seat,
-                        action=response.action,
-                        amount=response.amount,
-                        street=street_name,
-                        to_call=to_call,
-                        min_raise_to=min_raise_to,
-                    )
-                )
+            if elapsed_ms > self.config.time_per_decision_ms:
+                player.timeouts += 1
+                fallback = self._timeout_fallback(to_call, legal_actions)
                 self.logger.log(
-                    "action",
+                    "penalty",
                     {
                         "hand_id": hand_id,
                         "seat": seat,
-                        "action": response.action,
-                        "amount": response.amount,
-                        "to_call": to_call,
-                        "min_raise_to": min_raise_to,
+                        "kind": "timeout",
                         "elapsed_ms": math.ceil(elapsed_ms),
-                        "stack_after": player.stack,
-                        "bet": player.bet,
-                        "street": street_name,
+                        "fallback": fallback.action,
                     },
                 )
-                acted_since_raise[seat] = True
+                response = fallback
+                elapsed_ms = self.config.time_per_decision_ms
 
-                if response.action == "raise_to":
-                    for other_seat in acted_since_raise:
-                        acted_since_raise[other_seat] = (
-                            players[other_seat].folded or players[other_seat].all_in
-                        )
-                    acted_since_raise[seat] = True
+            response, penalty_payload = self._normalize_action(
+                hand_id=hand_id,
+                seat=seat,
+                player=player,
+                response=response,
+                legal_actions=legal_actions,
+                to_call=to_call,
+                min_raise_to=min_raise_to,
+                current_bet=current_bet,
+                last_full_raise=last_full_raise,
+            )
+            if penalty_payload is not None:
+                player.illegal_actions += 1
+                self.logger.log("penalty", penalty_payload)
 
-                if self._betting_round_complete(highest, players) and all(acted_since_raise.values()):
-                    break
+            elapsed_ms_int = math.ceil(max(elapsed_ms, 0.0))
 
-            return highest, last_raise_size
+            if response.action == "fold":
+                self._apply_fold(player)
+                active_order = self._active_order(order, players)
+                acted = {s: acted.get(s, False) for s in active_order}
+                queue = deque(active_order)
+                pot_delta = 0
+            elif response.action == "check":
+                self._apply_check(player, to_call)
+                acted[seat] = True
+                pot_delta = 0
+            elif response.action == "call":
+                added = self._apply_call(player, to_call, contributions)
+                pot += added
+                pot_delta = added
+                acted[seat] = True
+            elif response.action == "raise_to":
+                added, current_bet, last_full_raise, is_full_raise = self._apply_raise_to(
+                    player=player,
+                    desired=response.amount,
+                    to_call=to_call,
+                    min_raise_to=min_raise_to,
+                    current_bet=current_bet,
+                    last_full_raise=last_full_raise,
+                    contributions=contributions,
+                )
+                pot += added
+                pot_delta = added
+                acted[seat] = True
+                aggression_occurred = True
+                last_aggressor = seat
 
-        highest_bet, last_raise = betting_round(order, street, highest_bet, last_raise)
+                active_order = self._active_order(order, players)
+                if is_full_raise and not player.all_in:
+                    acted = {s: (s == seat) for s in active_order}
+                else:
+                    acted = {s: (s == seat) or acted.get(s, False) for s in active_order}
+                queue = deque(self._rotation_after(active_order, seat))
+            else:
+                raise IllegalActionError(f"Unsupported action {response.action!r}")
 
-        # Early win by folding
-        if self._active_players(players) == 1:
-            winner_seat = self._remaining_seat(players)
-            winners = {winner_seat: pot}
-            self._announce_showdown(hand_id, board_cards, winners, contributions, players)
-            return self._apply_payouts(players, contributions, winners)
+            action_history.append(
+                ActionHistoryEntry(
+                    seat_id=seat,
+                    action=response.action,
+                    amount=response.amount,
+                    street=street,
+                    to_call=to_call,
+                    min_raise_to=min_raise_to,
+                )
+            )
+            self.logger.log(
+                "action",
+                {
+                    "hand_id": hand_id,
+                    "seat": seat,
+                    "action": response.action,
+                    "amount": response.amount,
+                    "to_call": to_call,
+                    "min_raise_to": min_raise_to,
+                    "elapsed_ms": elapsed_ms_int,
+                    "stack_after": player.stack,
+                    "bet": player.bet,
+                    "street": street,
+                    "pot_delta": pot_delta,
+                    "pot": pot,
+                },
+            )
 
-        # Community cards
-        board_cards.extend([next(deck_iter) for _ in range(3)])  # flop
-        self.logger.log(
-            "street_transition",
-            {
+            if self._all_non_folded_all_in(players):
+                return BettingRoundResult(last_aggressor, aggression_occurred, True), current_bet, last_full_raise, pot
+
+            if self._betting_round_complete(current_bet, players) and not queue:
+                break
+
+            if not queue:
+                active_order = self._active_order(order, players)
+                remaining = [
+                    s for s in active_order if (current_bet - players[s].bet) > 0 or not acted.get(s, False)
+                ]
+                if remaining:
+                    queue = deque(remaining)
+                else:
+                    if self._betting_round_complete(current_bet, players):
+                        break
+                    queue = deque(active_order)
+
+        everyone_all_in = self._all_non_folded_all_in(players)
+        return BettingRoundResult(last_aggressor, aggression_occurred, everyone_all_in), current_bet, last_full_raise, pot
+
+    def _invoke_agent(self, agent: AgentInterface, request: ActionRequest) -> Tuple[ActionResponse, float]:
+        start = time.perf_counter()
+        response = agent.act(request)
+        wait_time_ms = getattr(response, "wait_time_ms", 0)
+        if wait_time_ms > 0:
+            print(f"[Engine] Agent {agent.name} wait_time_ms={wait_time_ms}")
+        elapsed_ms = (time.perf_counter() - start) * 1000 - wait_time_ms
+        return response, elapsed_ms
+
+    def _normalize_action(
+        self,
+        *,
+        hand_id: str,
+        seat: int,
+        player: PlayerRuntimeState,
+        response: ActionResponse,
+        legal_actions: Sequence[str],
+        to_call: int,
+        min_raise_to: int,
+        current_bet: int,
+        last_full_raise: int,
+    ) -> Tuple[ActionResponse, Optional[Dict[str, object]]]:
+        if response.action not in legal_actions:
+            fallback = self._illegal_fallback(to_call, legal_actions)
+            payload = {
                 "hand_id": hand_id,
-                "street": "flop",
-                "board": [str(c) for c in board_cards],
-            },
-        )
-        street = "flop"
-        self._reset_bets(players)
-        order = compute_order(street, self.config.seat_count, button_seat)
-        highest_bet, last_raise = betting_round(order, street, 0, self.config.big_blind)
+                "seat": seat,
+                "kind": "illegal_action",
+                "attempted": {"action": response.action, "amount": response.amount},
+                "fallback": fallback.action,
+            }
+            return fallback, payload
 
-        if self._active_players(players) == 1:
-            winner_seat = self._remaining_seat(players)
-            winners = {winner_seat: pot}
-            self._announce_showdown(hand_id, board_cards, winners, contributions, players)
-            return self._apply_payouts(players, contributions, winners)
+        if response.action != "raise_to":
+            return response, None
 
-        board_cards.append(next(deck_iter))  # turn
-        self.logger.log(
-            "street_transition",
-            {
+        desired = response.amount
+        if desired is None or not isinstance(desired, int):
+            fallback = self._illegal_fallback(to_call, legal_actions)
+            payload = {
                 "hand_id": hand_id,
-                "street": "turn",
-                "board": [str(c) for c in board_cards],
-            },
-        )
-        street = "turn"
-        self._reset_bets(players)
-        order = compute_order(street, self.config.seat_count, button_seat)
-        highest_bet, last_raise = betting_round(order, street, 0, self.config.big_blind)
+                "seat": seat,
+                "kind": "illegal_action",
+                "attempted": {"action": response.action, "amount": response.amount},
+                "fallback": fallback.action,
+            }
+            return fallback, payload
 
-        if self._active_players(players) == 1:
-            winner_seat = self._remaining_seat(players)
-            winners = {winner_seat: pot}
-            self._announce_showdown(hand_id, board_cards, winners, contributions, players)
-            return self._apply_payouts(players, contributions, winners)
+        call_total = player.bet + to_call
+        max_total = player.bet + player.stack
 
-        board_cards.append(next(deck_iter))  # river
-        self.logger.log(
-            "street_transition",
-            {
+        if max_total <= call_total or desired <= call_total:
+            fallback = self._illegal_fallback(to_call, legal_actions)
+            payload = {
                 "hand_id": hand_id,
-                "street": "river",
-                "board": [str(c) for c in board_cards],
-            },
-        )
-        street = "river"
-        self._reset_bets(players)
-        order = compute_order(street, self.config.seat_count, button_seat)
-        betting_round(order, street, 0, self.config.big_blind)
+                "seat": seat,
+                "kind": "illegal_action",
+                "attempted": {"action": response.action, "amount": response.amount},
+                "fallback": fallback.action,
+            }
+            return fallback, payload
 
-        winners = self._resolve_showdown(players, board_cards, contributions, button_seat)
-        self._announce_showdown(hand_id, board_cards, winners, contributions, players)
-        return self._apply_payouts(players, contributions, winners)
+        min_raise_target = self._min_raise_target(current_bet, last_full_raise)
+        if max_total >= min_raise_target and desired < min_raise_target:
+            fallback = self._illegal_fallback(to_call, legal_actions)
+            payload = {
+                "hand_id": hand_id,
+                "seat": seat,
+                "kind": "illegal_action",
+                "attempted": {"action": response.action, "amount": response.amount},
+                "fallback": fallback.action,
+            }
+            return fallback, payload
+
+        if max_total < min_raise_target and desired != max_total:
+            fallback = self._illegal_fallback(to_call, legal_actions)
+            payload = {
+                "hand_id": hand_id,
+                "seat": seat,
+                "kind": "illegal_action",
+                "attempted": {"action": response.action, "amount": response.amount},
+                "fallback": fallback.action,
+            }
+            return fallback, payload
+
+        desired = min(desired, max_total)
+        return ActionResponse(action="raise_to", amount=desired), None
 
     def _apply_fold(self, player: PlayerRuntimeState) -> None:
         player.folded = True
@@ -425,24 +735,22 @@ class HoldemEngine:
 
     def _apply_raise_to(
         self,
+        *,
         player: PlayerRuntimeState,
-        desired: int,
+        desired: Optional[int],
         to_call: int,
         min_raise_to: int,
-        highest_bet: int,
-        last_raise_size: int,
+        current_bet: int,
+        last_full_raise: int,
         contributions: Dict[int, int],
-    ) -> Tuple[int, int, int]:
-        max_total = player.bet + player.stack
+    ) -> Tuple[int, int, int, bool]:
+        if desired is None:
+            raise IllegalActionError("raise_to requires an amount")
+
         call_total = player.bet + to_call
-
-        if max_total >= min_raise_to:
-            desired = max(desired, min_raise_to)
-        else:
-            desired = min(desired, max_total)
-
-        desired = max(desired, call_total)
-        desired = min(desired, max_total)
+        max_total = player.bet + player.stack
+        if desired > max_total:
+            desired = max_total
 
         added = desired - player.bet
         player.stack -= added
@@ -450,75 +758,124 @@ class HoldemEngine:
         contributions[player.seat_id] += added
         if player.stack == 0:
             player.all_in = True
-        new_highest = max(highest_bet, desired)
-        if desired >= min_raise_to and desired > highest_bet:
-            new_last_raise = desired - highest_bet
+
+        is_full_raise = False
+        new_last_full_raise = last_full_raise
+
+        if current_bet == 0:
+            if desired >= self.config.big_blind:
+                is_full_raise = True
+                new_last_full_raise = desired
+            current_bet = desired
         else:
-            new_last_raise = last_raise_size
-        return added, new_highest, new_last_raise
+            if desired > current_bet and desired >= current_bet + last_full_raise:
+                is_full_raise = True
+                new_last_full_raise = desired - current_bet
+            current_bet = max(current_bet, desired)
 
-    def _post_blind(self, player: PlayerRuntimeState, amount: int, contributions: Dict[int, int]) -> None:
-        posted = min(amount, player.stack)
-        player.stack -= posted
-        player.bet += posted
-        contributions[player.seat_id] = posted
-        if player.stack == 0:
-            player.all_in = True
-        self.logger.log(
-            "blind",
-            {
-                "seat": player.seat_id,
-                "amount": posted,
-                "type": "small" if amount == self.config.small_blind else "big",
-            },
-        )
+        return added, current_bet, new_last_full_raise, is_full_raise
 
-    def _betting_round_complete(
-        self, highest_bet: int, players: Dict[int, PlayerRuntimeState]
-    ) -> bool:
-        """
-        A betting round is complete when every non-folded/non-all-in player has
-        matched the current highest bet.
-        """
-        active_players = [p for p in players.values() if not p.folded and not p.all_in]
-        if len(active_players) <= 1:
-            return True
-        return all(p.bet == highest_bet for p in active_players)
+    def _min_raise_target(self, current_bet: int, last_full_raise: int) -> int:
+        if current_bet == 0:
+            return max(self.config.big_blind, 1)
+        raise_increment = max(last_full_raise, self.config.big_blind)
+        return current_bet + raise_increment
 
-    def _legal_actions(self, player: PlayerRuntimeState, to_call: int, min_raise_to: int) -> List[str]:
-        legal: List[str] = []
-        if to_call > 0:
-            legal.append("fold")
-            legal.append("call")
-        else:
+    def _legal_actions(
+        self,
+        player: PlayerRuntimeState,
+        to_call: int,
+        min_raise_to: int,
+        may_raise: bool,
+    ) -> List[str]:
+        legal: List[str] = ["fold"]
+        if to_call == 0:
             legal.append("check")
-        max_raise = player.bet + player.stack
-        if player.stack > 0 and max_raise >= min_raise_to:
-            legal.append("raise_to")
-        elif to_call > 0 and player.stack > to_call:
+        else:
+            if player.stack > 0:
+                legal.append("call")
+        max_total = player.bet + player.stack
+        if may_raise and player.stack > 0 and max_total > player.bet + to_call:
             legal.append("raise_to")
         return legal
 
-    def _timeout_fallback(self, to_call: int) -> ActionResponse:
-        if to_call > 0:
+    def _timeout_fallback(self, to_call: int, legal_actions: Sequence[str]) -> ActionResponse:
+        policy = self.config.timeout_fallback_policy
+        if policy == "fold":
+            if "fold" in legal_actions:
+                return ActionResponse(action="fold")
+        if to_call == 0 and "check" in legal_actions:
+            return ActionResponse(action="check")
+        if "fold" in legal_actions:
             return ActionResponse(action="fold")
-        return ActionResponse(action="check")
+        if "call" in legal_actions:
+            return ActionResponse(action="call")
+        return ActionResponse(action=legal_actions[0])
 
-    def _illegal_fallback(self, to_call: int) -> ActionResponse:
-        return self._timeout_fallback(to_call)
+    def _illegal_fallback(self, to_call: int, legal_actions: Sequence[str]) -> ActionResponse:
+        policy = self.config.illegal_action_fallback_policy
+        if policy == "fold":
+            if "fold" in legal_actions:
+                return ActionResponse(action="fold")
+        if to_call == 0 and "check" in legal_actions:
+            return ActionResponse(action="check")
+        if "fold" in legal_actions:
+            return ActionResponse(action="fold")
+        if "call" in legal_actions:
+            return ActionResponse(action="call")
+        return ActionResponse(action=legal_actions[0])
 
     def _reset_bets(self, players: Dict[int, PlayerRuntimeState]) -> None:
         for player in players.values():
             player.bet = 0
 
-    def _active_players(self, players: Dict[int, PlayerRuntimeState]) -> int:
-        return sum(not p.folded and not p.all_in for p in players.values())
+    def _players_remaining(self, players: Dict[int, PlayerRuntimeState]) -> List[int]:
+        return [seat for seat, player in players.items() if not player.folded]
 
     def _remaining_seat(self, players: Dict[int, PlayerRuntimeState]) -> int:
         for seat, player in players.items():
             if not player.folded:
                 return seat
         raise RuntimeError("no remaining players")
+
+    def _all_non_folded_all_in(self, players: Dict[int, PlayerRuntimeState]) -> bool:
+        active = [p for p in players.values() if not p.folded]
+        return bool(active) and all(p.all_in for p in active)
+
+    def _active_order(self, order: Sequence[int], players: Dict[int, PlayerRuntimeState]) -> List[int]:
+        return [
+            seat
+            for seat in order
+            if seat in players and not players[seat].folded and not players[seat].all_in and not players[seat].sitting_out
+        ]
+
+    def _rotation_after(self, order: Sequence[int], seat: int) -> List[int]:
+        if seat not in order:
+            return list(order)
+        idx = order.index(seat)
+        return list(order[idx + 1 :]) + list(order[:idx])
+
+    def _betting_round_complete(self, current_bet: int, players: Dict[int, PlayerRuntimeState]) -> bool:
+        contenders = [p for p in players.values() if not p.folded and not p.all_in]
+        if len(contenders) <= 1:
+            return True
+        return all(p.bet == current_bet for p in contenders)
+
+    def _build_side_pots(
+        self,
+        players: Dict[int, PlayerRuntimeState],
+        contributions: Dict[int, int],
+    ) -> List[Pot]:
+        levels = sorted({amount for amount in contributions.values() if amount > 0})
+        pots: List[Pot] = []
+        previous = 0
+        for amount in levels:
+            contributors = [seat for seat, total in contributions.items() if total >= amount]
+            size = (amount - previous) * len(contributors)
+            eligible = [seat for seat in contributors if not players[seat].folded]
+            pots.append(Pot(size=size, eligible_seats=eligible))
+            previous = amount
+        return pots
 
     def _resolve_showdown(
         self,
@@ -527,54 +884,42 @@ class HoldemEngine:
         contributions: Dict[int, int],
         button_seat: int,
     ) -> Dict[int, int]:
-        active = [p for p in players.values() if not p.folded]
-        showdowns = {p.seat_id: best_hand_rank(p.hole_cards + list(board_cards)) for p in active}
         pots = self._build_side_pots(players, contributions)
-        results: Dict[int, int] = {seat: 0 for seat in players}
-        for pot_amount, eligible in pots:
-            contenders = [seat for seat in eligible if not players[seat].folded]
-            if not contenders:
+        payouts: Dict[int, int] = {seat: 0 for seat in players}
+        active_seats = [seat for seat, player in players.items() if not player.folded]
+        hand_ranks = {
+            seat: best_hand_rank(players[seat].hole_cards + list(board_cards))
+            for seat in active_seats
+        }
+
+        odd_chip_order = self._odd_chip_distribution_order(button_seat)
+
+        for pot in pots:
+            if not pot.eligible_seats:
                 continue
-            best_value = max(showdowns[seat] for seat in contenders)
-            winners = [seat for seat in contenders if showdowns[seat] == best_value]
-            share = pot_amount // len(winners)
-            remainder = pot_amount % len(winners)
+            best_rank = max(hand_ranks[seat] for seat in pot.eligible_seats)
+            winners = [seat for seat in pot.eligible_seats if hand_ranks[seat] == best_rank]
+            share, remainder = divmod(pot.size, len(winners))
             for seat in winners:
-                results[seat] += share
+                payouts[seat] += share
             if remainder:
-                for seat in self._clockwise_order_from(button_seat):
+                for seat in odd_chip_order:
                     if seat in winners:
-                        results[seat] += 1
+                        payouts[seat] += 1
                         remainder -= 1
                         if remainder == 0:
                             break
-        return results
+        return payouts
 
-    def _clockwise_order_from(self, button_seat: int) -> List[int]:
-        order: List[int] = []
-        seat = seat_after(button_seat, self.config.seat_count)
-        for _ in range(self.config.seat_count):
-            order.append(seat)
-            seat = seat_after(seat, self.config.seat_count)
-        return order
-
-    def _build_side_pots(
-        self,
-        players: Dict[int, PlayerRuntimeState],
-        contributions: Dict[int, int],
-    ) -> List[Tuple[int, List[int]]]:
-        entries = [(seat, contributions[seat]) for seat in players if contributions[seat] > 0]
-        if not entries:
-            return []
-        unique = sorted({amount for _, amount in entries})
-        pots: List[Tuple[int, List[int]]] = []
-        prev = 0
-        for amount in unique:
-            eligible = [seat for seat, contrib in entries if contrib >= amount]
-            pot_amount = (amount - prev) * len(eligible)
-            pots.append((pot_amount, eligible))
-            prev = amount
-        return pots
+    def _odd_chip_distribution_order(self, button_seat: int) -> List[int]:
+        if self.config.odd_chips_rule == "button_left":
+            order = []
+            seat = seat_after(button_seat, self.config.seat_count)
+            for _ in range(self.config.seat_count):
+                order.append(seat)
+                seat = seat_after(seat, self.config.seat_count)
+            return order
+        raise NotImplementedError(f"Odd chip rule {self.config.odd_chips_rule!r} is not implemented.")
 
     def _apply_payouts(
         self,
@@ -587,8 +932,7 @@ class HoldemEngine:
             winnings = payouts.get(seat, 0)
             spent = contributions.get(seat, 0)
             player.stack += winnings
-            delta = winnings - spent
-            deltas[seat] = delta
+            deltas[seat] = winnings - spent
         self.logger.log(
             "hand_end",
             {"payouts": payouts, "contributions": contributions},
@@ -602,24 +946,25 @@ class HoldemEngine:
         payouts: Dict[int, int],
         contributions: Dict[int, int],
         players: Dict[int, PlayerRuntimeState],
+        last_aggressor: Optional[int] = None,
     ) -> None:
         standings = {
             seat: {
-                "cards": [str(c) for c in players[seat].hole_cards],
+                "cards": [str(card) for card in players[seat].hole_cards],
                 "stack": players[seat].stack,
             }
             for seat in players
         }
-        self.logger.log(
-            "showdown",
-            {
-                "hand_id": hand_id,
-                "board": [str(c) for c in board_cards],
-                "payouts": payouts,
-                "contributions": contributions,
-                "standings": standings,
-            },
-        )
+        payload = {
+            "hand_id": hand_id,
+            "board": [str(card) for card in board_cards],
+            "payouts": payouts,
+            "contributions": contributions,
+            "standings": standings,
+        }
+        if last_aggressor is not None:
+            payload["last_aggressor"] = last_aggressor
+        self.logger.log("showdown", payload)
 
 
 def build_deck_from_seed(seed: int, hand_index: int, replica_id: int) -> List[Card]:
