@@ -15,6 +15,8 @@ from .agents.deepseek_agent import DeepSeekAgent
 from .agents.kimi_agent import KimiAgent
 from .agents.qwen_agent import QwenAgent
 from .agents.cohere_agent import CohereAgent
+from .agents.doubao_agent import DoubaoAgent
+from .agents.glm_agent import GLMAgent
 
 BASELINE_FACTORIES: Dict[str, Callable[..., Any]] = {
     "random-hu": RandomAgent,
@@ -35,6 +37,10 @@ BASELINE_FACTORIES: Dict[str, Callable[..., Any]] = {
     "qwen-6": QwenAgent,
     "cohere-hu": CohereAgent,
     "cohere-6": CohereAgent,
+    "doubao-hu": DoubaoAgent,
+    "doubao-6": DoubaoAgent,
+    "glm-hu": GLMAgent,
+    "glm-6": GLMAgent
 }
 
 

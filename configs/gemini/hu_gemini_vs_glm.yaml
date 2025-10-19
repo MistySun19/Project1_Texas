@@ -1,0 +1,11 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [601]
+hands_per_seed: 100
+replicas: 2
+lineup:
+  - baseline:glm-hu
+  - baseline:gemini-hu

@@ -60,6 +60,7 @@ class SeriesConfig:
     population_mirroring: bool = False
     opponent_lineup: Optional[List[str]] = None
     lineup: Optional[List[str]] = None
+    system_prompt_override: Optional[str] = None
 
     @property
     def starting_stack(self) -> int:
@@ -83,6 +84,7 @@ class SeriesConfig:
             population_mirroring=data.get("population_mirroring", False),
             opponent_lineup=data.get("opponent_lineup"),
             lineup=data.get("lineup"),
+            system_prompt_override=data.get("system_prompt_override"),
         )
         config.validate()
         return config
@@ -161,6 +163,7 @@ class BenchmarkRunner:
         )
 
     def run(self, agent=None) -> RunResult:
+        agent = self._apply_global_overrides(agent) if agent is not None else None
         runner_name = getattr(agent, "name", "lineup") if agent is not None else "lineup"
         print(f"[BenchmarkRunner] Starting run for {runner_name} in mode {self.config.mode}")
         if self.config.mode == "hu":
@@ -185,7 +188,9 @@ class BenchmarkRunner:
 
         use_full_lineup = bool(self.config.lineup)
         if use_full_lineup:
-            lineup_agents = [self._create_agent_from_spec(spec) for spec in self.config.lineup or []]
+            lineup_agents = [
+                self._create_agent_from_spec(spec) for spec in self.config.lineup or []
+            ]
             replicas = self.config.replicas or 2
         else:
             assert agent is not None
@@ -226,7 +231,10 @@ class BenchmarkRunner:
                         button_seat = opponent_seat
                     agent_iface = AgentInterface(agent, agent_seat)
                     opponent_name = opponent_cycle[seed_idx % len(opponent_cycle)]
-                    opponent_iface = AgentInterface(make_baseline(opponent_name), opponent_seat)
+                    opponent_agent = self._apply_global_overrides(
+                        make_baseline(opponent_name)
+                    )
+                    opponent_iface = AgentInterface(opponent_agent, opponent_seat)
                     log_dir = self.output_dir / "logs" / "hu" / opponent_name
 
                 log_path = log_dir / f"seed{seed}_rep{replica_id}.ndjson"
@@ -409,6 +417,14 @@ class BenchmarkRunner:
                 log_paths.append(log_path)
         return records, log_paths
 
+    def _apply_global_overrides(self, agent_obj):
+        if agent_obj is None:
+            return None
+        override = self.config.system_prompt_override
+        if override is not None and hasattr(agent_obj, "system_prompt_override"):
+            setattr(agent_obj, "system_prompt_override", override)
+        return agent_obj
+
     def _assignment_cycle(self, mix: Dict[str, float]) -> Tuple[str, ...]:
         expanded: List[str] = []
         for name, weight in sorted(mix.items(), key=lambda x: x[0]):
@@ -427,7 +443,7 @@ class BenchmarkRunner:
             lineup.append(rng.choices(names, weights=weights, k=1)[0])
         return lineup
 
-    def _rotate_assignment(self, assignment: List[str], replica_id: int) -> List[str]:
+    def _rotate_assignment(self, assignment: List[Any], replica_id: int) -> List[Any]:
         shift = -(replica_id % len(assignment))
         return assignment[shift:] + assignment[:shift]
 
@@ -447,5 +463,9 @@ class BenchmarkRunner:
             agent_obj = make_baseline(baseline_name, **kwargs)
             if display_name:
                 setattr(agent_obj, "name", display_name)
-            return agent_obj
-        return load_custom_agent(spec)
+            return self._apply_global_overrides(agent_obj)
+        try:
+            agent_obj = make_baseline(spec)
+        except ValueError:
+            agent_obj = load_custom_agent(spec)
+        return self._apply_global_overrides(agent_obj)

@@ -134,6 +134,9 @@ Optional flags for `GPT5Agent`:
 - `system_prompt="..."`: append extra guardrails to the base system prompt.
 - `system_prompt_override="..."`: replace the default system prompt entirely (overrides any appended prompt).
 
+Config files also accept a top-level `system_prompt_override` key; when present it
+overrides the system message for any OpenAI-compatible agents created from the lineup.
+
 ### 4. Other LLM Providers (Gemini / DeepSeek / Kimi / Qwen / Cohere)
 
 Agents for additional OpenAI-compatible providers are shipped under

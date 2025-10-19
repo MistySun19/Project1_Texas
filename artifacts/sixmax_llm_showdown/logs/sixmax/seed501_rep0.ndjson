@@ -1,0 +1,14 @@
+{"payload": {"blinds": {"bb": 100, "sb": 50}, "button_seat": 3, "hand_id": "501-0-0", "hand_index": 0, "replica_id": 0, "rng_tag": "501:0:0", "seats": {"0": {"name": "GLM", "stack": 10000}, "1": {"name": "GPT-5-Mini", "stack": 10000}, "2": {"name": "Gemini", "stack": 10000}, "3": {"name": "DeepSeek", "stack": 10000}, "4": {"name": "Kimi", "stack": 10000}, "5": {"name": "Doubao", "stack": 10000}}, "seed": 501, "table_id": "green-sixmax"}, "ts": "2025-10-19T22:02:35.735978+00:00", "type": "hand_start"}
+{"payload": {"cards": ["Jd", "Ad"], "hand_id": "501-0-0", "seat": 0}, "ts": "2025-10-19T22:02:35.736140+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["2h", "9c"], "hand_id": "501-0-0", "seat": 1}, "ts": "2025-10-19T22:02:35.736151+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["2s", "9d"], "hand_id": "501-0-0", "seat": 2}, "ts": "2025-10-19T22:02:35.736158+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["6c", "Th"], "hand_id": "501-0-0", "seat": 3}, "ts": "2025-10-19T22:02:35.736163+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["Js", "3s"], "hand_id": "501-0-0", "seat": 4}, "ts": "2025-10-19T22:02:35.736168+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["4s", "As"], "hand_id": "501-0-0", "seat": 5}, "ts": "2025-10-19T22:02:35.736173+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 4, "type": "small"}, "ts": "2025-10-19T22:02:35.736180+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 5, "type": "big"}, "ts": "2025-10-19T22:02:35.736186+00:00", "type": "blind"}
+{"payload": {"action": "raise_to", "amount": 300, "bet": 300, "elapsed_ms": 36550, "hand_id": "501-0-0", "min_raise_to": 200, "pot": 450, "pot_delta": 300, "seat": 0, "stack_after": 9700, "street": "preflop", "to_call": 100}, "ts": "2025-10-19T22:03:12.285471+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 0, "elapsed_ms": 5405, "hand_id": "501-0-0", "min_raise_to": 500, "pot": 450, "pot_delta": 0, "seat": 1, "stack_after": 10000, "street": "preflop", "to_call": 300}, "ts": "2025-10-19T22:03:17.690674+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 0, "elapsed_ms": 1745, "hand_id": "501-0-0", "min_raise_to": 500, "pot": 450, "pot_delta": 0, "seat": 2, "stack_after": 10000, "street": "preflop", "to_call": 300}, "ts": "2025-10-19T22:03:19.434880+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 0, "elapsed_ms": 1762, "hand_id": "501-0-0", "min_raise_to": 500, "pot": 450, "pot_delta": 0, "seat": 3, "stack_after": 10000, "street": "preflop", "to_call": 300}, "ts": "2025-10-19T22:03:21.196485+00:00", "type": "action"}
+{"payload": {"action": "fold", "amount": null, "bet": 50, "elapsed_ms": 2546, "hand_id": "501-0-0", "min_raise_to": 500, "pot": 450, "pot_delta": 0, "seat": 4, "stack_after": 9950, "street": "preflop", "to_call": 250}, "ts": "2025-10-19T22:03:23.742014+00:00", "type": "action"}

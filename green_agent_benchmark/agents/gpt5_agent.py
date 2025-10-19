@@ -21,5 +21,5 @@ class GPT5Agent(OpenAICompatibleAgent):
     """
 
     default_model: str = field(default="gpt-5-mini", init=False)
-    default_name: str = field(default="GPT-5", init=False)
+    default_name: str = field(default="GPT-5-Mini", init=False)
     env_prefix: str = field(default="OPENAI", init=False)

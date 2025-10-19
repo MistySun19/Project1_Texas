@@ -62,6 +62,7 @@ class OpenAICompatibleAgent:
     base_url: Optional[str] = None
     temperature: Optional[float] = None
     system_prompt: Optional[str] = None
+    system_prompt_override: Optional[str] = None
     dry_run: bool = False
     name: Optional[str] = None
     use_responses: bool = True
@@ -216,6 +217,10 @@ class OpenAICompatibleAgent:
     # --- prompt and parsing helpers -------------------------------------
 
     def _system_message(self) -> str:
+        if self.system_prompt_override is not None:
+            # print("Using system prompt override.")
+            # print(self.system_prompt_override)
+            return self.system_prompt_override
         base = (
             "You are a professional No-Limit Texas Hold'em assistant. "
             "Respond with a JSON object matching this schema:\n"
@@ -229,6 +234,7 @@ class OpenAICompatibleAgent:
                 "focus on actions that build stack growth while avoiding repeated losses from speculative calls."
             )
         if self.system_prompt:
+            # print(f"Appending custom system prompt:\n{self.system_prompt}")
             return f"{base}\n{self.system_prompt}"
         return base
 
