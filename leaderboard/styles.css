@@ -1,18 +1,18 @@
 /* Modern Leaderboard Styles */
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #e74c3c;
-    --success-color: #27ae60;
-    --warning-color: #f39c12;
-    --background-color: #ecf0f1;
-    --card-background: #ffffff;
-    --text-color: #2c3e50;
-    --text-muted: #7f8c8d;
-    --border-color: #bdc3c7;
-    --shadow: 0 2px 10px rgba(0,0,0,0.1);
-    --shadow-hover: 0 4px 20px rgba(0,0,0,0.15);
-    --border-radius: 8px;
+    --primary-color: #141217;
+    --secondary-color: #c62828;
+    --accent-color: #ffd54f;
+    --success-color: #43a047;
+    --warning-color: #e53935;
+    --background-color: #090a0f;
+    --card-background: rgba(22, 20, 26, 0.92);
+    --text-color: #f5f5f5;
+    --text-muted: #b0b3b8;
+    --border-color: rgba(255,255,255,0.08);
+    --shadow: 0 18px 40px rgba(0,0,0,0.45);
+    --shadow-hover: 0 24px 50px rgba(0,0,0,0.55);
+    --border-radius: 12px;
     --transition: all 0.3s ease;
 }
 
@@ -24,24 +24,56 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--background-color);
+    background: radial-gradient(circle at top, #1d1b24 0%, #121018 45%, var(--background-color) 100%);
     color: var(--text-color);
     line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 10% 10%, rgba(198,40,40,0.12) 0, transparent 55%),
+        radial-gradient(circle at 90% 20%, rgba(255,213,79,0.08) 0, transparent 60%),
+        radial-gradient(circle at 15% 80%, rgba(255,255,255,0.06) 0, transparent 65%);
+    z-index: -2;
+}
+
+body::after {
+    content: "♠ ♣ \00A0 ♥ ♦";
+    position: fixed;
+    bottom: 6%;
+    right: 4%;
+    font-size: 7rem;
+    letter-spacing: 1.5rem;
+    color: rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+    z-index: -1;
+    transform: rotate(-12deg);
 }
 
 .container {
     max-width: 1400px;
-    margin: 0 auto;
+    margin: 0 auto 4rem;
     padding: 0 20px;
+    position: relative;
 }
 
 /* Header Styles */
 .header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: radial-gradient(1000px 280px at 50% -200px, rgba(255,213,79,0.18), transparent 60%),
+                linear-gradient(135deg, rgba(20,18,23,0.98), rgba(198,40,40,0.92));
     color: white;
-    padding: 2rem 0;
+    padding: 2.5rem 0 2rem;
     margin-bottom: 2rem;
     box-shadow: var(--shadow);
+    border-bottom: 3px solid rgba(255,213,79,0.35);
+    position: relative;
+    overflow: hidden;
 }
 
 .header-content {
@@ -49,15 +81,44 @@ body {
 }
 
 .header h1 {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
+    font-size: 3.2rem;
+    margin-bottom: 0.75rem;
     font-weight: 300;
+    letter-spacing: 0.08em;
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-bottom: 1rem;
+    font-size: 1.15rem;
+    opacity: 0.85;
+    margin-bottom: 1.25rem;
+}
+
+.poker-suits {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    font-size: 1.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.poker-suits .suit {
+    text-shadow: 0 0 12px rgba(0,0,0,0.35);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.poker-suits .suit:hover {
+    transform: translateY(-5px) scale(1.05);
+}
+
+.suit-spade,
+.suit-club {
+    color: rgba(255,255,255,0.85);
+}
+
+.suit-heart,
+.suit-diamond {
+    color: #ff4d6d;
 }
 
 .update-info {
@@ -69,9 +130,9 @@ body {
 }
 
 .refresh-btn {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.3);
-    color: white;
+    background: rgba(255, 213, 79, 0.15);
+    border: 1px solid rgba(255, 213, 79, 0.45);
+    color: #ffe082;
     padding: 0.5rem 1rem;
     border-radius: var(--border-radius);
     cursor: pointer;
@@ -79,7 +140,7 @@ body {
 }
 
 .refresh-btn:hover {
-    background: rgba(255,255,255,0.3);
+    background: rgba(255, 213, 79, 0.25);
 }
 
 /* Summary Section */
@@ -125,15 +186,16 @@ body {
 /* Controls Section */
 .controls-section {
     background: var(--card-background);
-    padding: 1.5rem;
+    padding: 1.75rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
-    margin-bottom: 2rem;
+    margin-bottom: 2.25rem;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
     justify-content: space-between;
+    border: 1px solid rgba(255,255,255,0.06);
 }
 
 .search-box {
@@ -152,8 +214,10 @@ body {
 
 .search-box input {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    border: 2px solid var(--border-color);
+    padding: 0.85rem 1rem 0.85rem 2.75rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.35);
+    color: var(--text-color);
     border-radius: var(--border-radius);
     font-size: 1rem;
     transition: var(--transition);
@@ -161,7 +225,8 @@ body {
 
 .search-box input:focus {
     outline: none;
-    border-color: var(--secondary-color);
+    border-color: rgba(198,40,40,0.85);
+    box-shadow: 0 0 0 3px rgba(198,40,40,0.2);
 }
 
 .filter-buttons {
@@ -171,20 +236,22 @@ body {
 }
 
 .filter-btn {
-    padding: 0.5rem 1rem;
-    border: 2px solid var(--border-color);
-    background: transparent;
-    border-radius: var(--border-radius);
+    padding: 0.55rem 1.1rem;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25);
+    color: var(--text-color);
+    border-radius: 999px;
     cursor: pointer;
     transition: var(--transition);
     font-size: 0.9rem;
+    backdrop-filter: blur(6px);
 }
 
 .filter-btn.active,
 .filter-btn:hover {
-    background: var(--secondary-color);
+    background: linear-gradient(135deg, rgba(198,40,40,0.85), rgba(255,213,79,0.45));
     color: white;
-    border-color: var(--secondary-color);
+    border-color: rgba(255,213,79,0.45);
 }
 
 /* Leaderboard Section */
@@ -192,16 +259,19 @@ body {
     background: var(--card-background);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
     overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
 }
 
 .section-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
+    padding: 1.6rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(12px);
 }
 
 .section-header h2 {
@@ -217,17 +287,18 @@ body {
 
 .toggle-btn {
     padding: 0.5rem 1rem;
-    border: 2px solid var(--border-color);
-    background: transparent;
-    border-radius: var(--border-radius);
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    border-radius: 999px;
     cursor: pointer;
     transition: var(--transition);
+    color: var(--text-color);
 }
 
 .toggle-btn.active {
-    background: var(--secondary-color);
+    background: linear-gradient(135deg, rgba(198,40,40,0.9), rgba(255,213,79,0.55));
     color: white;
-    border-color: var(--secondary-color);
+    border-color: rgba(255,213,79,0.45);
 }
 
 /* Table Styles */
@@ -241,24 +312,27 @@ body {
 }
 
 .leaderboard-table th {
-    background: var(--background-color);
+    background: rgba(255,255,255,0.06);
     padding: 1rem;
     text-align: left;
     font-weight: 600;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     position: sticky;
     top: 0;
     z-index: 10;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
 }
 
 .leaderboard-table td {
     padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: var(--transition);
 }
 
 .leaderboard-table tr:hover {
-    background: rgba(52, 152, 219, 0.05);
+    background: rgba(198, 40, 40, 0.12);
 }
 
 /* Rank styling */
@@ -268,11 +342,11 @@ body {
 }
 
 .rank.top-3 {
-    color: var(--warning-color);
+    color: var(--accent-color);
 }
 
 .rank.top-1 {
-    color: var(--accent-color);
+    color: #ffef9f;
 }
 
 /* Agent name styling */
@@ -284,15 +358,16 @@ body {
 }
 
 .agent-avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: var(--secondary-color);
+    background: radial-gradient(circle at 30% 30%, rgba(255,213,79,0.8), rgba(198,40,40,0.85));
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: bold;
+    box-shadow: 0 0 10px rgba(198,40,40,0.35);
 }
 
 /* Metric styling */
@@ -307,7 +382,7 @@ body {
 }
 
 .bb-negative {
-    color: var(--accent-color);
+    color: var(--warning-color);
     font-weight: bold;
 }
 
@@ -322,7 +397,7 @@ body {
 }
 
 .trend-declining {
-    color: var(--accent-color);
+    color: var(--warning-color);
 }
 
 .trend-stable {
@@ -331,9 +406,9 @@ body {
 
 /* Progress bars */
 .progress-bar {
-    width: 60px;
+    width: 70px;
     height: 8px;
-    background: var(--border-color);
+    background: rgba(255,255,255,0.12);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -346,7 +421,7 @@ body {
 
 /* Details button */
 .details-btn {
-    background: var(--secondary-color);
+    background: linear-gradient(135deg, rgba(198,40,40,0.9), rgba(255,213,79,0.6));
     color: white;
     border: none;
     padding: 0.3rem 0.8rem;
@@ -357,7 +432,7 @@ body {
 }
 
 .details-btn:hover {
-    background: var(--primary-color);
+    background: rgba(20,18,23,0.9);
 }
 
 /* Cards View */
@@ -366,22 +441,24 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1.5rem;
     padding: 1.5rem;
+    background: rgba(0,0,0,0.15);
 }
 
 .agent-card {
     background: var(--card-background);
-    border: 2px solid var(--border-color);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--border-radius);
-    padding: 1.5rem;
+    padding: 1.6rem;
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(8px);
 }
 
 .agent-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-hover);
-    border-color: var(--secondary-color);
+    border-color: rgba(198,40,40,0.6);
 }
 
 .agent-card::before {
@@ -391,7 +468,7 @@ body {
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--secondary-color), var(--success-color));
+    background: linear-gradient(120deg, rgba(198,40,40,0.95), rgba(255,213,79,0.7));
 }
 
 /* Charts Section */
@@ -404,9 +481,11 @@ body {
 
 .chart-container {
     background: var(--card-background);
-    padding: 1.5rem;
+    padding: 1.6rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(8px);
 }
 
 .chart-container h3 {
@@ -423,12 +502,12 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    backdrop-filter: blur(5px);
+    background-color: rgba(8,8,12,0.75);
+    backdrop-filter: blur(7px);
 }
 
 .modal-content {
-    background-color: var(--card-background);
+    background-color: rgba(22, 20, 26, 0.98);
     margin: 5% auto;
     padding: 0;
     border-radius: var(--border-radius);
@@ -440,7 +519,7 @@ body {
 }
 
 .modal-header {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, rgba(20,18,23,0.95), rgba(198,40,40,0.9));
     color: white;
     padding: 1.5rem;
     display: flex;
@@ -531,10 +610,10 @@ body {
 }
 
 .detail-section h3 {
-    color: var(--primary-color);
+    color: var(--accent-color);
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 2px solid rgba(255,255,255,0.08);
 }
 
 .detail-grid {
@@ -578,10 +657,10 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    background: var(--background-color);
+    padding: 0.85rem;
+    background: rgba(0,0,0,0.35);
     border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255,255,255,0.06);
 }
 
 .run-item strong {
@@ -621,7 +700,7 @@ body {
 .agent-card .rating {
     font-size: 1.3rem;
     font-weight: bold;
-    color: var(--secondary-color);
+    color: var(--accent-color);
 }
 
 .agent-card .card-stats {

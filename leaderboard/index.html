@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏆 Green Agent Leaderboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=poker-red-black-1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -14,6 +14,12 @@
             <div class="header-content">
                 <h1><i class="fas fa-trophy"></i> Green Agent Leaderboard</h1>
                 <p class="subtitle">Texas Hold'em AI Performance Rankings</p>
+                <div class="poker-suits" aria-hidden="true">
+                    <span class="suit suit-spade">♠</span>
+                    <span class="suit suit-heart">♥</span>
+                    <span class="suit suit-club">♣</span>
+                    <span class="suit suit-diamond">♦</span>
+                </div>
                 <div class="update-info">
                     <i class="fas fa-clock"></i>
                     <span id="lastUpdated">Loading...</span>
@@ -25,38 +31,6 @@
         </header>
 
         <div class="main-content">
-            <!-- Summary Stats -->
-            <div class="summary-section">
-                <div class="stat-card">
-                    <i class="fas fa-users"></i>
-                    <div class="stat-content">
-                        <h3 id="totalAgents">-</h3>
-                        <p>Total Agents</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-chart-line"></i>
-                    <div class="stat-content">
-                        <h3 id="avgRating">-</h3>
-                        <p>Average Rating</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-coins"></i>
-                    <div class="stat-content">
-                        <h3 id="avgBB">-</h3>
-                        <p>Avg BB/100</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-gamepad"></i>
-                    <div class="stat-content">
-                        <h3 id="totalHands">-</h3>
-                        <p>Total Hands</p>
-                    </div>
-                </div>
-            </div>
-
             <!-- Filter and Search -->
             <div class="controls-section">
                 <div class="search-box">
@@ -75,14 +49,6 @@
             <div class="leaderboard-section">
                 <div class="section-header">
                     <h2><i class="fas fa-list-ol"></i> Rankings</h2>
-                    <div class="view-toggle">
-                        <button class="toggle-btn active" onclick="switchView('table')">
-                            <i class="fas fa-table"></i> Table
-                        </button>
-                        <button class="toggle-btn" onclick="switchView('cards')">
-                            <i class="fas fa-th-large"></i> Cards
-                        </button>
-                    </div>
                 </div>
 
                 <div id="tableView" class="table-container">
@@ -106,8 +72,7 @@
                     </table>
                 </div>
 
-                <div id="cardsView" class="cards-container" style="display: none;">
-                </div>
+                
             </div>
 
             <!-- Charts Section -->
