@@ -7,10 +7,10 @@ seeds: [501]
 seat_replicas: 6
 hands_per_replica: 50
 lineup:
-  - baseline:gpt5-6?model=gpt-5&name=GPT5-Pro
-  - baseline:gpt5-6?model=gpt-5-mini&name=GPT5-Mini
+  - baseline:glm-6
+  - baseline:gpt5-6
   - baseline:gemini-6
   - baseline:deepseek-6
   - baseline:kimi-6
-  - baseline:gpt5-6?model=gpt-5-nano&name=GPT5-nano
+  - baseline:doubao-6
 population_mirroring: true
