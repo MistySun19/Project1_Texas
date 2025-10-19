@@ -132,6 +132,7 @@ Optional flags for `GPT5Agent`:
 - `temperature`: adjust sampling temperature (default `0.0`).
 - `dry_run=True`: skip API calls and fall back to deterministic safety behaviour (useful for offline tests).
 - `system_prompt="..."`: append extra guardrails to the base system prompt.
+- `system_prompt_override="..."`: replace the default system prompt entirely (overrides any appended prompt).
 
 ### 4. Other LLM Providers (Gemini / DeepSeek / Kimi / Qwen / Cohere)
 
