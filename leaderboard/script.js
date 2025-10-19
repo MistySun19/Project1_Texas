@@ -1,8 +1,12 @@
 // Green Agent Leaderboard JavaScript
 let leaderboardData = null;
 let filteredData = null;
-let currentView = 'table';
 let currentFilter = 'all';
+
+function sortAgents(list) {
+    // Always sort by composite rating descending; ignore any precomputed rank in JSON
+    return [...list].sort((a, b) => b.composite_rating - a.composite_rating);
+}
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async function() {
@@ -14,8 +18,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadLeaderboardData() {
     try {
         const response = await fetch('data/leaderboard.json');
-        leaderboardData = await response.json();
-        filteredData = Object.values(leaderboardData.agents);
+    leaderboardData = await response.json();
+    filteredData = sortAgents(Object.values(leaderboardData.agents));
         
         updateUI();
         console.log('Leaderboard data loaded successfully');
@@ -29,21 +33,9 @@ async function loadLeaderboardData() {
 function updateUI() {
     if (!leaderboardData) return;
     
-    updateSummaryStats();
     updateLastUpdated();
     updateLeaderboard();
     updateCharts();
-}
-
-// Update summary statistics
-function updateSummaryStats() {
-    const summary = leaderboardData.summary;
-    const agents = leaderboardData.agents;
-    
-    document.getElementById('totalAgents').textContent = leaderboardData.total_agents || Object.keys(agents).length;
-    document.getElementById('avgRating').textContent = summary.avg_rating || 'N/A';
-    document.getElementById('avgBB').textContent = summary.avg_bb_per_100 ? formatBB(summary.avg_bb_per_100) : 'N/A';
-    document.getElementById('totalHands').textContent = formatNumber(summary.total_hands_played || 0);
 }
 
 // Update last updated timestamp
@@ -54,11 +46,8 @@ function updateLastUpdated() {
 
 // Update leaderboard display
 function updateLeaderboard() {
-    if (currentView === 'table') {
-        updateTableView();
-    } else {
-        updateCardsView();
-    }
+    // Only table view is supported
+    updateTableView();
 }
 
 // Update table view
@@ -66,22 +55,23 @@ function updateTableView() {
     const tbody = document.getElementById('leaderboardTableBody');
     tbody.innerHTML = '';
     
-    filteredData.forEach(agent => {
-        const row = createTableRow(agent);
+    filteredData.forEach((agent, idx) => {
+        const row = createTableRow(agent, idx + 1); // computed rank is index + 1
         tbody.appendChild(row);
     });
 }
 
 // Create table row for agent
-function createTableRow(agent) {
+function createTableRow(agent, computedRank) {
     const row = document.createElement('tr');
     
-    const rankClass = agent.rank <= 3 ? 'rank top-' + agent.rank : 'rank';
+    const rank = computedRank;
+    const rankClass = rank <= 3 ? 'rank top-' + rank : 'rank';
     const bbClass = agent.weighted_bb_per_100 >= 0 ? 'bb-positive' : 'bb-negative';
     const trendClass = 'trend-' + agent.recent_performance.trend;
     
     row.innerHTML = [
-        '<td><span class="' + rankClass + '">#' + agent.rank + '</span></td>',
+        '<td><span class="' + rankClass + '">#' + rank + '</span></td>',
         '<td>',
         '  <div class="agent-name">',
         '    <div class="agent-avatar">' + agent.name.charAt(0) + '</div>',
@@ -125,63 +115,7 @@ function createTableRow(agent) {
     return row;
 }
 
-// Update cards view
-function updateCardsView() {
-    const container = document.getElementById('cardsView');
-    container.innerHTML = '';
-    
-    filteredData.forEach(agent => {
-        const card = createAgentCard(agent);
-        container.appendChild(card);
-    });
-}
-
-// Create agent card
-function createAgentCard(agent) {
-    const card = document.createElement('div');
-    card.className = 'agent-card';
-    
-    const rankClass = agent.rank <= 3 ? 'top-3' : '';
-    const bbClass = agent.weighted_bb_per_100 >= 0 ? 'bb-positive' : 'bb-negative';
-    const trendClass = 'trend-' + agent.recent_performance.trend;
-    
-    card.innerHTML = [
-        '<div class="card-header">',
-        '  <h3><span class="rank ' + rankClass + '">#' + agent.rank + '</span> ' + agent.name + '</h3>',
-        '  <div class="rating">' + agent.composite_rating + '</div>',
-        '</div>',
-        '<div class="card-stats">',
-        '  <div class="stat">',
-        '    <label>BB/100:</label>',
-        '    <span class="' + bbClass + '">' + formatBB(agent.weighted_bb_per_100) + '</span>',
-        '  </div>',
-        '  <div class="stat">',
-        '    <label>Hands:</label>',
-        '    <span>' + formatNumber(agent.total_hands) + '</span>',
-        '  </div>',
-        '  <div class="stat">',
-        '    <label>Win Rate:</label>',
-        '    <span>' + (agent.win_rate * 100).toFixed(0) + '%</span>',
-        '  </div>',
-        '  <div class="stat">',
-        '    <label>Consistency:</label>',
-        '    <span>' + (agent.consistency * 100).toFixed(0) + '%</span>',
-        '  </div>',
-        '  <div class="stat">',
-        '    <label>Trend:</label>',
-        '    <span class="trend ' + trendClass + '">',
-        '      <i class="fas fa-' + getTrendIcon(agent.recent_performance.trend) + '"></i>',
-        '      ' + agent.recent_performance.trend,
-        '    </span>',
-        '  </div>',
-        '</div>',
-        '<button class="details-btn" onclick="showAgentDetails(\'' + agent.name + '\')">',
-        '  <i class="fas fa-info-circle"></i> View Details',
-        '</button>'
-    ].join('');
-    
-    return card;
-}
+// Card view removed
 
 // Get trend icon
 function getTrendIcon(trend) {
@@ -205,25 +139,24 @@ function filterByCategory(category) {
     
     // Filter data
     const agents = Object.values(leaderboardData.agents);
+        let results = agents;
     
     switch(category) {
         case 'positive':
-            filteredData = agents.filter(agent => agent.weighted_bb_per_100 > 0);
+            results = agents.filter(agent => agent.weighted_bb_per_100 > 0);
             break;
         case 'improving':
-            filteredData = agents.filter(agent => agent.recent_performance.trend === 'improving');
+            results = agents.filter(agent => agent.recent_performance.trend === 'improving');
             break;
         case 'high-volume':
             const avgHands = agents.reduce((sum, a) => sum + a.total_hands, 0) / agents.length;
-            filteredData = agents.filter(agent => agent.total_hands > avgHands);
+            results = agents.filter(agent => agent.total_hands > avgHands);
             break;
         default:
-            filteredData = agents;
+            results = agents;
     }
-    
-    // Sort by rank
-    filteredData.sort((a, b) => a.rank - b.rank);
-    
+        results = sortAgents(results);
+        filteredData = results;
     updateLeaderboard();
 }
 
@@ -237,38 +170,17 @@ function filterAgents() {
         return;
     }
     
-    filteredData = agents.filter(agent => 
+        let results = agents.filter(agent => 
         agent.name.toLowerCase().includes(searchTerm)
     );
     
-    filteredData.sort((a, b) => a.rank - b.rank);
+        results = sortAgents(results);
+        filteredData = results;
     updateLeaderboard();
 }
 
 // Switch between table and cards view
-function switchView(viewType) {
-    currentView = viewType;
-    
-    // Update active button
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // Show/hide views
-    const tableView = document.getElementById('tableView');
-    const cardsView = document.getElementById('cardsView');
-    
-    if (viewType === 'table') {
-        tableView.style.display = 'block';
-        cardsView.style.display = 'none';
-    } else {
-        tableView.style.display = 'none';
-        cardsView.style.display = 'grid';
-    }
-    
-    updateLeaderboard();
-}
+// View toggle removed; only table is available
 
 // Show agent details modal
 function showAgentDetails(agentName) {
