@@ -1,0 +1,260 @@
+{
+  "DeepSeek": {
+    "bb_per_100": -92.33333333333333,
+    "bb_per_100_ci": [
+      -92.33333333333333,
+      -92.33333333333333
+    ],
+    "behavior": {
+      "af": 1.6470588235294117,
+      "decision_time_ms": {
+        "mean": 2291.7384937238494,
+        "samples": 478
+      },
+      "pfr": {
+        "count": 31,
+        "rate": 0.10333333333333333
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 17,
+        "raises": 28
+      },
+      "vpip": {
+        "count": 56,
+        "rate": 0.18666666666666668
+      },
+      "wt_sd": {
+        "count": 43,
+        "rate": 0.7678571428571429
+      }
+    },
+    "hands": 300,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": -1,
+    "timeouts": {
+      "count": 2,
+      "per_hand": 0.006666666666666667
+    },
+    "total_delta_chips": -27700
+  },
+  "Doubao": {
+    "bb_per_100": -87.66666666666667,
+    "bb_per_100_ci": [
+      -87.66666666666667,
+      -87.66666666666667
+    ],
+    "behavior": {
+      "af": 1.25,
+      "decision_time_ms": {
+        "mean": 25634.21923076923,
+        "samples": 520
+      },
+      "pfr": {
+        "count": 21,
+        "rate": 0.07
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 20,
+        "raises": 25
+      },
+      "vpip": {
+        "count": 64,
+        "rate": 0.21333333333333335
+      },
+      "wt_sd": {
+        "count": 46,
+        "rate": 0.6764705882352942
+      }
+    },
+    "hands": 300,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": -1,
+    "timeouts": {
+      "count": 29,
+      "per_hand": 0.09666666666666666
+    },
+    "total_delta_chips": -26300
+  },
+  "GLM": {
+    "bb_per_100": -71.16666666666667,
+    "bb_per_100_ci": [
+      -71.16666666666667,
+      -71.16666666666667
+    ],
+    "behavior": {
+      "af": 1.3673469387755102,
+      "decision_time_ms": {
+        "mean": 17204.63172043011,
+        "samples": 744
+      },
+      "pfr": {
+        "count": 51,
+        "rate": 0.17
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 49,
+        "raises": 67
+      },
+      "vpip": {
+        "count": 131,
+        "rate": 0.43666666666666665
+      },
+      "wt_sd": {
+        "count": 98,
+        "rate": 0.7777777777777778
+      }
+    },
+    "hands": 300,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": -1,
+    "timeouts": {
+      "count": 32,
+      "per_hand": 0.10666666666666667
+    },
+    "total_delta_chips": -21350
+  },
+  "GPT-5-Mini": {
+    "bb_per_100": 164.60000000000002,
+    "bb_per_100_ci": [
+      164.60000000000002,
+      164.60000000000002
+    ],
+    "behavior": {
+      "af": 5.88,
+      "decision_time_ms": {
+        "mean": 15382.735334242838,
+        "samples": 733
+      },
+      "pfr": {
+        "count": 74,
+        "rate": 0.24666666666666667
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 25,
+        "raises": 147
+      },
+      "vpip": {
+        "count": 136,
+        "rate": 0.4533333333333333
+      },
+      "wt_sd": {
+        "count": 110,
+        "rate": 0.8029197080291971
+      }
+    },
+    "hands": 300,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": 1,
+    "timeouts": {
+      "count": 2,
+      "per_hand": 0.006666666666666667
+    },
+    "total_delta_chips": 49380
+  },
+  "Gemini": {
+    "bb_per_100": 53.56666666666666,
+    "bb_per_100_ci": [
+      53.56666666666666,
+      53.56666666666666
+    ],
+    "behavior": {
+      "af": 41.5,
+      "decision_time_ms": {
+        "mean": 12778.687626774848,
+        "samples": 493
+      },
+      "pfr": {
+        "count": 48,
+        "rate": 0.16
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 2,
+        "raises": 83
+      },
+      "vpip": {
+        "count": 62,
+        "rate": 0.20666666666666667
+      },
+      "wt_sd": {
+        "count": 49,
+        "rate": 0.7313432835820896
+      }
+    },
+    "hands": 300,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": 1,
+    "timeouts": {
+      "count": 2,
+      "per_hand": 0.006666666666666667
+    },
+    "total_delta_chips": 16070
+  },
+  "Kimi": {
+    "bb_per_100": 33.0,
+    "bb_per_100_ci": [
+      33.0,
+      33.0
+    ],
+    "behavior": {
+      "af": 0.6,
+      "decision_time_ms": {
+        "mean": 3071.046678635548,
+        "samples": 557
+      },
+      "pfr": {
+        "count": 54,
+        "rate": 0.18
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 20,
+        "raises": 12
+      },
+      "vpip": {
+        "count": 76,
+        "rate": 0.25333333333333335
+      },
+      "wt_sd": {
+        "count": 57,
+        "rate": 0.7402597402597403
+      }
+    },
+    "hands": 300,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": 1,
+    "timeouts": {
+      "count": 1,
+      "per_hand": 0.0033333333333333335
+    },
+    "total_delta_chips": 9900
+  }
+}
