@@ -1,6 +1,8 @@
 // Green Agent Leaderboard JavaScript
 let leaderboardData = null;
-let filteredData = null;
+let huAgents = [];
+let sixmaxRuns = [];
+let filteredData = [];
 let currentFilter = 'all';
 
 function sortAgents(list) {
@@ -18,8 +20,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadLeaderboardData() {
     try {
         const response = await fetch('data/leaderboard.json');
-    leaderboardData = await response.json();
-    filteredData = sortAgents(Object.values(leaderboardData.agents));
+        leaderboardData = await response.json();
+        huAgents = sortAgents(Object.values((leaderboardData.hu && leaderboardData.hu.agents) || {}));
+        sixmaxRuns = (leaderboardData.sixmax && leaderboardData.sixmax.runs) ? [...leaderboardData.sixmax.runs] : [];
+        filteredData = [...huAgents];
         
         updateUI();
         console.log('Leaderboard data loaded successfully');
@@ -34,6 +38,7 @@ function updateUI() {
     if (!leaderboardData) return;
     
     updateLastUpdated();
+    updateSixmaxBoard();
     updateLeaderboard();
     updateCharts();
 }
@@ -46,7 +51,7 @@ function updateLastUpdated() {
 
 // Update leaderboard display
 function updateLeaderboard() {
-    // Only table view is supported
+    // Only table view is supported (HU leaderboard)
     updateTableView();
 }
 
@@ -55,10 +60,217 @@ function updateTableView() {
     const tbody = document.getElementById('leaderboardTableBody');
     tbody.innerHTML = '';
     
+    if (!filteredData.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="10" class="empty-state-row">No heads-up results yet. Run HU benchmarks to populate this table.</td>';
+        tbody.appendChild(row);
+        return;
+    }
+
     filteredData.forEach((agent, idx) => {
         const row = createTableRow(agent, idx + 1); // computed rank is index + 1
         tbody.appendChild(row);
     });
+}
+
+function updateSixmaxBoard() {
+    const container = document.getElementById('sixmaxBoard');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!sixmaxRuns.length) {
+        container.innerHTML = '<p class="empty-state">No 6-max results yet. Run a six-max benchmark to populate this board.</p>';
+        return;
+    }
+
+    const globalReference = (leaderboardData.sixmax && leaderboardData.sixmax.max_abs_bb) || 1;
+
+    sixmaxRuns.forEach(run => {
+        const agents = run.agents || [];
+        const reference = run.max_abs_bb > 0 ? run.max_abs_bb : globalReference;
+        const card = document.createElement('div');
+        card.className = 'hex-card';
+        const listHtml = agents.slice(0, 6).map((agent, idx) => {
+            const tone = agent.bb_per_100 >= 0 ? 'positive' : 'negative';
+            return [
+                '<div class="hex-player">',
+                '  <span class="seat-label">Seat ' + (idx + 1) + '</span>',
+                '  <span class="player-name">' + agent.name + '</span>',
+                '  <span class="player-bb ' + tone + '">' + formatBB(agent.bb_per_100) + '</span>',
+                '</div>'
+            ].join('');
+        }).join('');
+
+        card.innerHTML = [
+            '<canvas class="hex-canvas" width="500" height="500" aria-hidden="true"></canvas>',
+            '<div class="hex-info">',
+            '  <div class="hex-name">' + run.run_name + '</div>',
+            '  <div class="hex-meta">Hands per seat: ' + formatNumber(run.hands || 0) + '</div>',
+            '  <div class="hex-list">' + listHtml + '</div>',
+            '</div>'
+        ].join('');
+        container.appendChild(card);
+
+        const canvas = card.querySelector('canvas');
+        drawRunHex(canvas, agents, reference);
+    });
+}
+
+function drawRunHex(canvas, agents, reference) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const outerRadius = Math.min(width, height) * 0.34;
+
+    ctx.clearRect(0, 0, width, height);
+
+    drawHexagon(ctx, centerX, centerY, outerRadius, false, 'rgba(255,255,255,0.12)');
+    drawHexagon(ctx, centerX, centerY, outerRadius * 0.55, false, 'rgba(255,255,255,0.06)');
+
+    const seats = agents.slice(0, 6);
+    if (seats.length < 3) {
+        drawHexagon(ctx, centerX, centerY, outerRadius * 0.25, true, 'rgba(255,255,255,0.08)');
+        return;
+    }
+
+    const angleStep = (Math.PI * 2) / seats.length;
+    const points = seats.map((agent, idx) => {
+        const normalized = reference ? agent.bb_per_100 / reference : 0;
+        const clamped = Math.max(-1, Math.min(1, normalized));
+        const magnitude = Math.abs(clamped);
+        const baseRadius = outerRadius * 0.65;
+        const negativeFloor = outerRadius * 0.25;
+        let radius;
+        if (clamped >= 0) {
+            radius = baseRadius + (outerRadius - baseRadius) * magnitude;
+        } else {
+            radius = baseRadius - (baseRadius - negativeFloor) * magnitude;
+        }
+        radius = Math.max(radius, outerRadius * 0.05);
+        const angle = -Math.PI / 2 + idx * angleStep;
+        return {
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+            positive: clamped >= 0,
+            angle,
+            label: agent.name,
+        };
+    });
+
+    const positiveShare = points.filter(pt => pt.positive).length / points.length;
+    const fillColor = positiveShare >= 0.5
+        ? 'rgba(67, 160, 71, 0.28)'
+        : 'rgba(229, 57, 53, 0.28)';
+    const strokeColor = positiveShare >= 0.5
+        ? 'rgba(129, 199, 132, 0.9)'
+        : 'rgba(240, 98, 100, 0.9)';
+
+    ctx.beginPath();
+    points.forEach((pt, idx) => {
+        if (idx === 0) {
+            ctx.moveTo(pt.x, pt.y);
+        } else {
+            ctx.lineTo(pt.x, pt.y);
+        }
+    });
+    ctx.closePath();
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = strokeColor;
+    ctx.stroke();
+
+    ctx.beginPath();
+    points.forEach(pt => {
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    points.forEach(pt => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = pt.positive ? 'rgba(129,199,132,0.9)' : 'rgba(239,83,80,0.9)';
+        ctx.fill();
+    });
+
+    ctx.font = '12px "Segoe UI", sans-serif';
+
+    points.forEach((pt, idx) => {
+        const cosA = Math.cos(pt.angle);
+        const sinA = Math.sin(pt.angle);
+        const horizontalMargin = 20;
+        const verticalMargin = 24;
+
+        let align = 'center';
+        if (cosA > 0.25) {
+            align = 'left';
+        } else if (cosA < -0.25) {
+            align = 'right';
+        }
+        ctx.textAlign = align;
+        ctx.textBaseline = 'middle';
+
+        let seatRadius = outerRadius + 18;
+        let nameRadius = outerRadius + 36;
+        let seatX = centerX + seatRadius * cosA;
+        let seatY = centerY + seatRadius * sinA;
+        let nameX = centerX + nameRadius * cosA;
+        let nameY = centerY + nameRadius * sinA;
+
+        if (align === 'left') {
+            seatX = Math.min(seatX, width - horizontalMargin);
+            nameX = Math.min(nameX, width - horizontalMargin);
+        } else if (align === 'right') {
+            seatX = Math.max(seatX, horizontalMargin);
+            nameX = Math.max(nameX, horizontalMargin);
+        }
+
+        if (sinA >= 0.3) {
+            seatY = Math.min(seatY + 10, height - verticalMargin);
+            nameY = Math.min(nameY + 28, height - verticalMargin);
+        } else if (sinA <= -0.3) {
+            seatY = Math.max(seatY - 14, verticalMargin);
+            nameY = Math.max(nameY - 32, verticalMargin);
+        } else {
+            seatY = Math.max(Math.min(seatY - 2, height - verticalMargin), verticalMargin);
+            nameY = Math.max(Math.min(nameY + (sinA >= 0 ? 18 : -18), height - verticalMargin), verticalMargin);
+        }
+
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillText('Seat ' + (idx + 1), seatX, seatY);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.72)';
+        ctx.fillText(truncateName(pt.label, 18), nameX, nameY);
+    });
+}
+
+function drawHexagon(ctx, cx, cy, radius, fill = false, fillStyle = '#fff', strokeStyle = 'rgba(255,255,255,0.3)', lineWidth = 1.5) {
+    const sides = 6;
+    const angleStep = (Math.PI * 2) / sides;
+    ctx.beginPath();
+    for (let i = 0; i <= sides; i++) {
+        const angle = -Math.PI / 2 + i * angleStep;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    if (fill) {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+    }
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
 }
 
 // Create table row for agent
@@ -128,18 +340,23 @@ function getTrendIcon(trend) {
 }
 
 // Filter agents by category
-function filterByCategory(category) {
+function filterByCategory(category, button = null) {
     currentFilter = category;
     
     // Update active button
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    if (!button) {
+        button = document.querySelector('.filter-btn[data-default]') || document.querySelector('.filter-btn');
+    }
+    if (button) {
+        button.classList.add('active');
+    }
     
     // Filter data
-    const agents = Object.values(leaderboardData.agents);
-        let results = agents;
+    const agents = [...huAgents];
+    let results = agents;
     
     switch(category) {
         case 'positive':
@@ -163,10 +380,11 @@ function filterByCategory(category) {
 // Filter agents by search term
 function filterAgents() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const agents = Object.values(leaderboardData.agents);
+    const agents = [...huAgents];
     
     if (!searchTerm) {
-        filterByCategory(currentFilter);
+        const activeBtn = document.querySelector('.filter-btn.active');
+        filterByCategory(currentFilter, activeBtn);
         return;
     }
     
@@ -184,7 +402,8 @@ function filterAgents() {
 
 // Show agent details modal
 function showAgentDetails(agentName) {
-    const agent = leaderboardData.agents[agentName];
+    const agent = (leaderboardData.hu && leaderboardData.hu.agents && leaderboardData.hu.agents[agentName]) ||
+                  (leaderboardData.sixmax && leaderboardData.sixmax.agents && leaderboardData.sixmax.agents[agentName]);
     if (!agent) return;
     
     document.getElementById('modalAgentName').textContent = agent.name;
@@ -316,7 +535,8 @@ function createRatingChart() {
     const ctx = document.getElementById('ratingChart');
     if (!ctx) return;
     
-    const agents = Object.values(leaderboardData.agents);
+    const agents = huAgents;
+    if (!agents.length) return;
     const ratings = agents.map(agent => agent.composite_rating);
     
     // Create histogram bins
@@ -363,7 +583,8 @@ function createScatterChart() {
     const ctx = document.getElementById('scatterChart');
     if (!ctx) return;
     
-    const agents = Object.values(leaderboardData.agents);
+    const agents = huAgents;
+    if (!agents.length) return;
     const data = agents.map(agent => ({
         x: agent.composite_rating,
         y: agent.weighted_bb_per_100,
@@ -457,6 +678,11 @@ function formatNumber(num) {
 function formatBB(bbValue) {
     const sign = bbValue >= 0 ? '+' : '';
     return sign + bbValue.toFixed(1);
+}
+
+function truncateName(name, maxLength) {
+    if (!name) return '';
+    return name.length > maxLength ? name.slice(0, maxLength - 1) + '…' : name;
 }
 
 function showError(message) {

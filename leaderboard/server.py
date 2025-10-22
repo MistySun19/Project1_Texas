@@ -71,7 +71,10 @@ class LeaderboardHandler(http.server.SimpleHTTPRequestHandler):
                 "status": "success",
                 "message": "Leaderboard refreshed successfully",
                 "timestamp": leaderboard_data.get("last_updated"),
-                "total_agents": leaderboard_data.get("total_agents", 0)
+                "total_agents": (
+                    leaderboard_data.get("sixmax", {}).get("total_agents", 0)
+                    + leaderboard_data.get("hu", {}).get("total_agents", 0)
+                ),
             }
             self.wfile.write(json.dumps(response).encode())
             

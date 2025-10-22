@@ -31,58 +31,67 @@
         </header>
 
         <div class="main-content">
-            <!-- Filter and Search -->
-            <div class="controls-section">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Search agents..." oninput="filterAgents()">
-                </div>
-                <div class="filter-buttons">
-                    <button class="filter-btn active" onclick="filterByCategory('all')">All</button>
-                    <button class="filter-btn" onclick="filterByCategory('positive')">Profitable</button>
-                    <button class="filter-btn" onclick="filterByCategory('improving')">Improving</button>
-                    <button class="filter-btn" onclick="filterByCategory('high-volume')">High Volume</button>
-                </div>
-            </div>
-
-            <!-- Leaderboard Table -->
-            <div class="leaderboard-section">
+            <!-- Six-Max Ability Board -->
+            <section class="sixmax-section">
                 <div class="section-header">
-                    <h2><i class="fas fa-list-ol"></i> Rankings</h2>
+                    <h2><i class="fas fa-chess-queen"></i> 6-Max Ability Board</h2>
+                    <p class="section-subtitle">Hex radar shows momentum: winners push outward, losses collapse inward.</p>
+                </div>
+                <div id="sixmaxBoard" class="hex-grid"></div>
+            </section>
+
+            <!-- Heads-Up Leaderboard -->
+            <section class="hu-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list-ol"></i> Heads-Up Scoreboard</h2>
+                    <p class="section-subtitle">Traditional ranking with composite rating and detailed stats.</p>
                 </div>
 
-                <div id="tableView" class="table-container">
-                    <table class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Agent</th>
-                                <th>Rating</th>
-                                <th>BB/100</th>
-                                <th>Hands</th>
-                                <th>Win Rate</th>
-                                <th>Consistency</th>
-                                <th>Tech Quality</th>
-                                <th>Trend</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboardTableBody">
-                        </tbody>
-                    </table>
+                <div class="controls-section">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search HU agents..." oninput="filterAgents()">
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-default="true" onclick="filterByCategory('all', this)">All</button>
+                        <button class="filter-btn" onclick="filterByCategory('positive', this)">Profitable</button>
+                        <button class="filter-btn" onclick="filterByCategory('improving', this)">Improving</button>
+                        <button class="filter-btn" onclick="filterByCategory('high-volume', this)">High Volume</button>
+                    </div>
                 </div>
 
-                
-            </div>
+                <div class="leaderboard-section">
+                    <div id="tableView" class="table-container">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Agent</th>
+                                    <th>Rating</th>
+                                    <th>BB/100</th>
+                                    <th>Hands</th>
+                                    <th>Win Rate</th>
+                                    <th>Consistency</th>
+                                    <th>Tech Quality</th>
+                                    <th>Trend</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
             <!-- Charts Section -->
             <div class="charts-section">
                 <div class="chart-container">
-                    <h3>Rating Distribution</h3>
+                    <h3>HU Rating Distribution</h3>
                     <canvas id="ratingChart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>BB/100 vs Rating</h3>
+                    <h3>HU BB/100 vs Rating</h3>
                     <canvas id="scatterChart"></canvas>
                 </div>
             </div>

@@ -66,16 +66,26 @@ class LeaderboardUpdateHandler(FileSystemEventHandler):
             
             self.last_hash = current_hash
             
-            print(f"✅ Leaderboard updated successfully!")
-            print(f"📈 Total agents: {leaderboard_data.get('total_agents', 0)}")
-            
-            # Show top 3 agents
-            if leaderboard_data.get('agents'):
-                sorted_agents = sorted(leaderboard_data['agents'].items(), 
-                                     key=lambda x: x[1]['rank'])[:3]
-                print("🏆 Top 3:")
-                for agent_name, data in sorted_agents:
-                    print(f"   {data['rank']}. {agent_name}: {data['composite_rating']} rating")
+            print("✅ Leaderboard updated successfully!")
+            for mode in ("sixmax", "hu"):
+                category = leaderboard_data.get(mode, {})
+                print(f"📈 {mode.upper()} agents: {category.get('total_agents', 0)}")
+                agents = category.get("agents", {})
+                if agents:
+                    sorted_agents = sorted(
+                        agents.items(),
+                        key=lambda x: x[1]["rank"]
+                    )[:3]
+                    label = "Ability leaders" if mode == "sixmax" else "Top scorers"
+                    print(f"🏆 {label}:")
+                    for agent_name, data in sorted_agents:
+                        print(
+                            f"   {data['rank']}. {agent_name} — "
+                            f"{data['composite_rating']} rating "
+                            f"({data['weighted_bb_per_100']:+.1f} bb/100)"
+                        )
+                else:
+                    print("   No data yet.")
             
         except Exception as e:
             print(f"❌ Error updating leaderboard: {e}")

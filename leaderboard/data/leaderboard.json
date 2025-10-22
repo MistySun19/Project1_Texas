@@ -1,726 +1,963 @@
 {
-  "last_updated": "2025-10-16T20:29:46.918435",
-  "agents": {
-    "Demo Agent": {
-      "composite_rating": 1932.1,
-      "total_hands": 210,
-      "weighted_bb_per_100": 116.67,
-      "win_rate": 1.0,
-      "consistency": 0.015,
-      "technical_quality": 0.975,
-      "behavior_score": 0.95,
-      "runs_count": 2,
-      "avg_illegal_rate": 0.025,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "declining",
-        "recent_bb_avg": 75.5,
-        "recent_runs": 2
-      },
-      "name": "Demo Agent",
-      "runs_data": [
-        {
-          "bb_per_100": 121.0,
-          "bb_per_100_ci": [
-            67.59,
-            174.41
-          ],
-          "behavior": {
-            "af": 0.00906344410876133,
-            "decision_time_ms": {
-              "mean": 1.0,
-              "samples": 881
-            },
-            "pfr": {
-              "count": 10,
-              "rate": 0.05
-            },
-            "postflop": {
-              "calls": 331,
-              "raises": 3
-            },
-            "vpip": {
-              "count": 95,
-              "rate": 0.475
-            },
-            "wt_sd": {
-              "count": 160,
-              "rate": 1.3559322033898304
-            }
-          },
-          "hands": 200,
-          "illegal_actions": {
-            "count": 10,
-            "per_hand": 0.05
-          },
-          "match_points": 1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 24200,
-          "run_name": "demo",
-          "metrics_file": "artifacts/demo/metrics/metrics.json"
+  "last_updated": "2025-10-20T17:56:32.573417",
+  "sixmax": {
+    "agents": {
+      "DeepSeek": {
+        "composite_rating": 1522.6,
+        "total_hands": 306,
+        "weighted_bb_per_100": -90.52,
+        "win_rate": 0.0,
+        "consistency": 0.015,
+        "technical_quality": 0.997,
+        "behavior_score": 0.95,
+        "runs_count": 2,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0033,
+        "recent_performance": {
+          "trend": "declining",
+          "recent_bb_avg": -46.17,
+          "recent_runs": 2
         },
-        {
-          "bb_per_100": 30.0,
-          "bb_per_100_ci": [
-            30.0,
-            30.0
-          ],
-          "behavior": {
-            "af": 0.8333333333333334,
-            "decision_time_ms": {
-              "mean": 16717.206896551725,
-              "samples": 29
+        "name": "DeepSeek",
+        "runs_data": [
+          {
+            "bb_per_100": 0.0,
+            "bb_per_100_ci": [
+              0.0,
+              0.0
+            ],
+            "behavior": {
+              "af": 0.0,
+              "decision_time_ms": {
+                "mean": 1804.7777777777778,
+                "samples": 9
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.16666666666666666
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 0
+              },
+              "vpip": {
+                "count": 1,
+                "rate": 0.16666666666666666
+              },
+              "wt_sd": {
+                "count": 1,
+                "rate": 1.0
+              }
             },
-            "pfr": {
-              "count": 5,
-              "rate": 0.5
+            "hands": 6,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "postflop": {
-              "calls": 6,
-              "raises": 5
+            "match_points": 0,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "vpip": {
-              "count": 8,
-              "rate": 0.8
-            },
-            "wt_sd": {
-              "count": 8,
-              "rate": 1.1428571428571428
-            }
+            "total_delta_chips": 0,
+            "run_name": "sixmax_llm",
+            "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json",
+            "mode": "sixmax"
           },
-          "hands": 10,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": 1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 300,
-          "run_name": "demo10",
-          "metrics_file": "artifacts/demo10/metrics/metrics.json"
-        }
-      ],
-      "rank": 3
-    },
-    "Random": {
-      "composite_rating": 1766.1,
-      "total_hands": 4,
-      "weighted_bb_per_100": 0.0,
-      "win_rate": 0.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
-      },
-      "name": "Random",
-      "runs_data": [
-        {
-          "bb_per_100": 0.0,
-          "bb_per_100_ci": [
-            0.0,
-            0.0
-          ],
-          "behavior": {
-            "af": 1.3333333333333333,
-            "decision_time_ms": {
-              "mean": 1.0,
-              "samples": 14
+          {
+            "bb_per_100": -92.33333333333333,
+            "bb_per_100_ci": [
+              -92.33333333333333,
+              -92.33333333333333
+            ],
+            "behavior": {
+              "af": 1.6470588235294117,
+              "decision_time_ms": {
+                "mean": 2291.7384937238494,
+                "samples": 478
+              },
+              "pfr": {
+                "count": 31,
+                "rate": 0.10333333333333333
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 17,
+                "raises": 28
+              },
+              "vpip": {
+                "count": 56,
+                "rate": 0.18666666666666668
+              },
+              "wt_sd": {
+                "count": 43,
+                "rate": 0.7678571428571429
+              }
             },
-            "pfr": {
-              "count": 1,
-              "rate": 0.25
+            "hands": 300,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "postflop": {
-              "calls": 3,
-              "raises": 4
-            },
-            "vpip": {
+            "match_points": -1,
+            "timeouts": {
               "count": 2,
-              "rate": 0.5
+              "per_hand": 0.006666666666666667
             },
-            "wt_sd": {
-              "count": 3,
-              "rate": 1.5
-            }
-          },
-          "hands": 4,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": 0,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 0,
-          "run_name": "quick_test",
-          "metrics_file": "artifacts/quick_test/metrics/metrics.json"
-        }
-      ],
-      "rank": 5
-    },
-    "DeepSeek": {
-      "composite_rating": 1737.6,
-      "total_hands": 22,
-      "weighted_bb_per_100": 29.55,
-      "win_rate": 0.5,
-      "consistency": 0.021,
-      "technical_quality": 1.0,
-      "behavior_score": 0.95,
-      "runs_count": 2,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "declining",
-        "recent_bb_avg": 32.5,
-        "recent_runs": 2
+            "total_delta_chips": -27700,
+            "run_name": "sixmax_llm_showdown",
+            "metrics_file": "artifacts/sixmax_llm_showdown/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 9
       },
-      "name": "DeepSeek",
-      "runs_data": [
-        {
-          "bb_per_100": 65.0,
-          "bb_per_100_ci": [
-            65.0,
-            65.0
-          ],
-          "behavior": {
-            "af": 1.0,
-            "decision_time_ms": {
-              "mean": 1859.608695652174,
-              "samples": 23
-            },
-            "pfr": {
-              "count": 1,
-              "rate": 0.1
-            },
-            "postflop": {
-              "calls": 1,
-              "raises": 1
-            },
-            "vpip": {
-              "count": 3,
-              "rate": 0.3
-            },
-            "wt_sd": {
-              "count": 3,
-              "rate": 1.0
-            }
-          },
-          "hands": 10,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": 1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 650,
-          "run_name": "gpt5_vs_deepseek",
-          "metrics_file": "artifacts/gpt5_vs_deepseek/metrics/metrics.json"
+      "GPT5-Mini": {
+        "composite_rating": 1919.5,
+        "total_hands": 6,
+        "weighted_bb_per_100": 75.0,
+        "win_rate": 1.0,
+        "consistency": 1,
+        "technical_quality": 1.0,
+        "behavior_score": 1.0,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0,
+        "recent_performance": {
+          "trend": "insufficient_data"
         },
-        {
-          "bb_per_100": 0.0,
-          "bb_per_100_ci": [
-            0.0,
-            0.0
-          ],
-          "behavior": {
-            "af": 0.0,
-            "decision_time_ms": {
-              "mean": 1479.3333333333333,
-              "samples": 12
+        "name": "GPT5-Mini",
+        "runs_data": [
+          {
+            "bb_per_100": 75.0,
+            "bb_per_100_ci": [
+              75.0,
+              75.0
+            ],
+            "behavior": {
+              "af": 1.0,
+              "decision_time_ms": {
+                "mean": 12786.857142857143,
+                "samples": 14
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.16666666666666666
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 1
+              },
+              "vpip": {
+                "count": 3,
+                "rate": 0.5
+              },
+              "wt_sd": {
+                "count": 2,
+                "rate": 0.6666666666666666
+              }
             },
-            "pfr": {
-              "count": 2,
-              "rate": 0.16666666666666666
+            "hands": 6,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "postflop": {
-              "calls": 0,
-              "raises": 0
+            "match_points": 1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "vpip": {
-              "count": 2,
-              "rate": 0.16666666666666666
-            },
-            "wt_sd": {
-              "count": 2,
-              "rate": 0.0
-            }
-          },
-          "hands": 12,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": 0,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 0,
-          "run_name": "sixmax_llm",
-          "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json"
-        }
-      ],
-      "rank": 6
-    },
-    "GPT5": {
-      "composite_rating": 1604.0,
-      "total_hands": 10,
-      "weighted_bb_per_100": -65.0,
-      "win_rate": 0.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 0.6,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
+            "total_delta_chips": 450,
+            "run_name": "sixmax_llm",
+            "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 2
       },
-      "name": "GPT5",
-      "runs_data": [
-        {
-          "bb_per_100": -65.0,
-          "bb_per_100_ci": [
-            -65.0,
-            -65.0
-          ],
-          "behavior": {
-            "af": 2.0,
-            "decision_time_ms": {
-              "mean": 13935.894736842105,
-              "samples": 19
+      "GPT5-Pro": {
+        "composite_rating": 1744.5,
+        "total_hands": 6,
+        "weighted_bb_per_100": -8.33,
+        "win_rate": 0.0,
+        "consistency": 1,
+        "technical_quality": 0.833,
+        "behavior_score": 1.0,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.1667,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "GPT5-Pro",
+        "runs_data": [
+          {
+            "bb_per_100": -8.333333333333332,
+            "bb_per_100_ci": [
+              -8.333333333333332,
+              -8.333333333333332
+            ],
+            "behavior": {
+              "af": 2.0,
+              "decision_time_ms": {
+                "mean": 19866.454545454544,
+                "samples": 11
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.16666666666666666
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 2
+              },
+              "vpip": {
+                "count": 2,
+                "rate": 0.3333333333333333
+              },
+              "wt_sd": {
+                "count": 1,
+                "rate": 0.5
+              }
             },
-            "pfr": {
-              "count": 10,
-              "rate": 1.0
+            "hands": 6,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "postflop": {
-              "calls": 0,
-              "raises": 2
-            },
-            "vpip": {
-              "count": 10,
-              "rate": 1.0
-            },
-            "wt_sd": {
-              "count": 9,
-              "rate": 3.0
-            }
-          },
-          "hands": 10,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": -1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": -650,
-          "run_name": "gpt5_vs_deepseek",
-          "metrics_file": "artifacts/gpt5_vs_deepseek/metrics/metrics.json"
-        }
-      ],
-      "rank": 10
-    },
-    "GPT5-Mini": {
-      "composite_rating": 1667.3,
-      "total_hands": 12,
-      "weighted_bb_per_100": -54.17,
-      "win_rate": 0.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
-      },
-      "name": "GPT5-Mini",
-      "runs_data": [
-        {
-          "bb_per_100": -54.166666666666664,
-          "bb_per_100_ci": [
-            -54.166666666666664,
-            -54.166666666666664
-          ],
-          "behavior": {
-            "af": 1.0,
-            "decision_time_ms": {
-              "mean": 13495.666666666666,
-              "samples": 27
-            },
-            "pfr": {
-              "count": 2,
-              "rate": 0.16666666666666666
-            },
-            "postflop": {
-              "calls": 2,
-              "raises": 2
-            },
-            "vpip": {
-              "count": 4,
-              "rate": 0.3333333333333333
-            },
-            "wt_sd": {
-              "count": 2,
-              "rate": 1.0
-            }
-          },
-          "hands": 12,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": -1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": -650,
-          "run_name": "sixmax_llm",
-          "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json"
-        }
-      ],
-      "rank": 7
-    },
-    "GPT5-Pro": {
-      "composite_rating": 1659.0,
-      "total_hands": 12,
-      "weighted_bb_per_100": -58.33,
-      "win_rate": 0.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
-      },
-      "name": "GPT5-Pro",
-      "runs_data": [
-        {
-          "bb_per_100": -58.333333333333336,
-          "bb_per_100_ci": [
-            -58.333333333333336,
-            -58.333333333333336
-          ],
-          "behavior": {
-            "af": 1.0,
-            "decision_time_ms": {
-              "mean": 14147.0,
-              "samples": 18
-            },
-            "pfr": {
-              "count": 3,
-              "rate": 0.25
-            },
-            "postflop": {
-              "calls": 1,
-              "raises": 1
-            },
-            "vpip": {
-              "count": 4,
-              "rate": 0.3333333333333333
-            },
-            "wt_sd": {
-              "count": 2,
-              "rate": 1.0
-            }
-          },
-          "hands": 12,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": -1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": -700,
-          "run_name": "sixmax_llm",
-          "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json"
-        }
-      ],
-      "rank": 8
-    },
-    "GPT5-nano": {
-      "composite_rating": 1659.0,
-      "total_hands": 12,
-      "weighted_bb_per_100": -58.33,
-      "win_rate": 0.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
-      },
-      "name": "GPT5-nano",
-      "runs_data": [
-        {
-          "bb_per_100": -58.333333333333336,
-          "bb_per_100_ci": [
-            -58.333333333333336,
-            -58.333333333333336
-          ],
-          "behavior": {
-            "af": 1.0,
-            "decision_time_ms": {
-              "mean": 21457.782608695652,
-              "samples": 23
-            },
-            "pfr": {
-              "count": 2,
-              "rate": 0.16666666666666666
-            },
-            "postflop": {
-              "calls": 0,
-              "raises": 1
-            },
-            "vpip": {
-              "count": 3,
-              "rate": 0.25
-            },
-            "wt_sd": {
+            "match_points": -1,
+            "timeouts": {
               "count": 1,
-              "rate": 0.5
-            }
-          },
-          "hands": 12,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": -1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": -700,
-          "run_name": "sixmax_llm",
-          "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json"
-        }
-      ],
-      "rank": 9
-    },
-    "Gemini": {
-      "composite_rating": 2025.6,
-      "total_hands": 12,
-      "weighted_bb_per_100": 125.0,
-      "win_rate": 1.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
+              "per_hand": 0.16666666666666666
+            },
+            "total_delta_chips": -50,
+            "run_name": "sixmax_llm",
+            "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 5
       },
-      "name": "Gemini",
-      "runs_data": [
-        {
-          "bb_per_100": 125.0,
-          "bb_per_100_ci": [
-            125.0,
-            125.0
-          ],
-          "behavior": {
-            "af": 3.0,
-            "decision_time_ms": {
-              "mean": 13223.52380952381,
-              "samples": 21
+      "GPT5-nano": {
+        "composite_rating": 1606.1,
+        "total_hands": 6,
+        "weighted_bb_per_100": -66.67,
+        "win_rate": 0.0,
+        "consistency": 1,
+        "technical_quality": 1.0,
+        "behavior_score": 0.7,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "GPT5-nano",
+        "runs_data": [
+          {
+            "bb_per_100": -66.66666666666666,
+            "bb_per_100_ci": [
+              -66.66666666666666,
+              -66.66666666666666
+            ],
+            "behavior": {
+              "af": 0.0,
+              "decision_time_ms": {
+                "mean": 20404.88888888889,
+                "samples": 9
+              },
+              "pfr": {
+                "count": 0,
+                "rate": 0.0
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 0
+              },
+              "vpip": {
+                "count": 2,
+                "rate": 0.3333333333333333
+              },
+              "wt_sd": {
+                "count": 0,
+                "rate": 0.0
+              }
             },
-            "pfr": {
-              "count": 2,
-              "rate": 0.16666666666666666
+            "hands": 6,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "postflop": {
-              "calls": 0,
-              "raises": 3
+            "match_points": -1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "vpip": {
-              "count": 2,
-              "rate": 0.16666666666666666
-            },
-            "wt_sd": {
-              "count": 2,
-              "rate": 2.0
-            }
-          },
-          "hands": 12,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": 1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 1500,
-          "run_name": "sixmax_llm",
-          "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json"
-        }
-      ],
-      "rank": 2
-    },
-    "Kimi": {
-      "composite_rating": 1867.3,
-      "total_hands": 12,
-      "weighted_bb_per_100": 45.83,
-      "win_rate": 1.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
+            "total_delta_chips": -400,
+            "run_name": "sixmax_llm",
+            "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 8
       },
-      "name": "Kimi",
-      "runs_data": [
-        {
-          "bb_per_100": 45.83333333333333,
-          "bb_per_100_ci": [
-            45.83333333333333,
-            45.83333333333333
-          ],
-          "behavior": {
-            "af": 1.0,
-            "decision_time_ms": {
-              "mean": 3030.1428571428573,
-              "samples": 21
+      "Gemini": {
+        "composite_rating": 1805.0,
+        "total_hands": 306,
+        "weighted_bb_per_100": 53.17,
+        "win_rate": 1.0,
+        "consistency": 0.065,
+        "technical_quality": 0.997,
+        "behavior_score": 0.85,
+        "runs_count": 2,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0033,
+        "recent_performance": {
+          "trend": "improving",
+          "recent_bb_avg": 43.45,
+          "recent_runs": 2
+        },
+        "name": "Gemini",
+        "runs_data": [
+          {
+            "bb_per_100": 33.33333333333333,
+            "bb_per_100_ci": [
+              33.33333333333333,
+              33.33333333333333
+            ],
+            "behavior": {
+              "af": 3.0,
+              "decision_time_ms": {
+                "mean": 6662.555555555556,
+                "samples": 9
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.16666666666666666
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 3
+              },
+              "vpip": {
+                "count": 1,
+                "rate": 0.16666666666666666
+              },
+              "wt_sd": {
+                "count": 1,
+                "rate": 1.0
+              }
             },
-            "pfr": {
+            "hands": 6,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": 1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "total_delta_chips": 200,
+            "run_name": "sixmax_llm",
+            "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json",
+            "mode": "sixmax"
+          },
+          {
+            "bb_per_100": 53.56666666666666,
+            "bb_per_100_ci": [
+              53.56666666666666,
+              53.56666666666666
+            ],
+            "behavior": {
+              "af": 41.5,
+              "decision_time_ms": {
+                "mean": 12778.687626774848,
+                "samples": 493
+              },
+              "pfr": {
+                "count": 48,
+                "rate": 0.16
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 2,
+                "raises": 83
+              },
+              "vpip": {
+                "count": 62,
+                "rate": 0.20666666666666667
+              },
+              "wt_sd": {
+                "count": 49,
+                "rate": 0.7313432835820896
+              }
+            },
+            "hands": 300,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": 1,
+            "timeouts": {
               "count": 2,
-              "rate": 0.16666666666666666
+              "per_hand": 0.006666666666666667
             },
-            "postflop": {
-              "calls": 0,
-              "raises": 1
-            },
-            "vpip": {
-              "count": 3,
-              "rate": 0.25
-            },
-            "wt_sd": {
-              "count": 3,
-              "rate": 3.0
-            }
-          },
-          "hands": 12,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "match_points": 1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
-          },
-          "total_delta_chips": 550,
-          "run_name": "sixmax_llm",
-          "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json"
-        }
-      ],
-      "rank": 4
-    },
-    "TestAgent": {
-      "composite_rating": 2196.2,
-      "total_hands": 100,
-      "weighted_bb_per_100": 200.0,
-      "win_rate": 1.0,
-      "consistency": 1,
-      "technical_quality": 1.0,
-      "behavior_score": 1.0,
-      "runs_count": 1,
-      "avg_illegal_rate": 0.0,
-      "avg_timeout_rate": 0.0,
-      "recent_performance": {
-        "trend": "insufficient_data"
+            "total_delta_chips": 16070,
+            "run_name": "sixmax_llm_showdown",
+            "metrics_file": "artifacts/sixmax_llm_showdown/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 3
       },
-      "name": "TestAgent",
-      "runs_data": [
-        {
-          "bb_per_100": 200.0,
-          "bb_per_100_ci": [
-            180.0,
-            220.0
-          ],
-          "behavior": {
-            "af": 2.5,
-            "decision_time_ms": {
-              "mean": 1500.0,
-              "samples": 150
+      "Kimi": {
+        "composite_rating": 1767.7,
+        "total_hands": 306,
+        "weighted_bb_per_100": 31.7,
+        "win_rate": 0.5,
+        "consistency": 0.021,
+        "technical_quality": 0.998,
+        "behavior_score": 0.95,
+        "runs_count": 2,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0017,
+        "recent_performance": {
+          "trend": "improving",
+          "recent_bb_avg": -0.17,
+          "recent_runs": 2
+        },
+        "name": "Kimi",
+        "runs_data": [
+          {
+            "bb_per_100": -33.33333333333333,
+            "bb_per_100_ci": [
+              -33.33333333333333,
+              -33.33333333333333
+            ],
+            "behavior": {
+              "af": 0.0,
+              "decision_time_ms": {
+                "mean": 3177.75,
+                "samples": 12
+              },
+              "pfr": {
+                "count": 2,
+                "rate": 0.3333333333333333
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 0
+              },
+              "vpip": {
+                "count": 2,
+                "rate": 0.3333333333333333
+              },
+              "wt_sd": {
+                "count": 2,
+                "rate": 1.0
+              }
             },
-            "pfr": {
-              "count": 25,
-              "rate": 0.25
+            "hands": 6,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "postflop": {
-              "calls": 20,
-              "raises": 50
+            "match_points": -1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
             },
-            "vpip": {
-              "count": 40,
-              "rate": 0.4
-            },
-            "wt_sd": {
-              "count": 30,
-              "rate": 0.75
-            }
+            "total_delta_chips": -200,
+            "run_name": "sixmax_llm",
+            "metrics_file": "artifacts/sixmax_llm/metrics/metrics.json",
+            "mode": "sixmax"
           },
-          "hands": 100,
-          "illegal_actions": {
-            "count": 0,
-            "per_hand": 0.0
+          {
+            "bb_per_100": 33.0,
+            "bb_per_100_ci": [
+              33.0,
+              33.0
+            ],
+            "behavior": {
+              "af": 0.6,
+              "decision_time_ms": {
+                "mean": 3071.046678635548,
+                "samples": 557
+              },
+              "pfr": {
+                "count": 54,
+                "rate": 0.18
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 20,
+                "raises": 12
+              },
+              "vpip": {
+                "count": 76,
+                "rate": 0.25333333333333335
+              },
+              "wt_sd": {
+                "count": 57,
+                "rate": 0.7402597402597403
+              }
+            },
+            "hands": 300,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": 1,
+            "timeouts": {
+              "count": 1,
+              "per_hand": 0.0033333333333333335
+            },
+            "total_delta_chips": 9900,
+            "run_name": "sixmax_llm_showdown",
+            "metrics_file": "artifacts/sixmax_llm_showdown/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 4
+      },
+      "Doubao": {
+        "composite_rating": 1626.9,
+        "total_hands": 300,
+        "weighted_bb_per_100": -87.67,
+        "win_rate": 0.0,
+        "consistency": 1,
+        "technical_quality": 0.903,
+        "behavior_score": 1.0,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0967,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "Doubao",
+        "runs_data": [
+          {
+            "bb_per_100": -87.66666666666667,
+            "bb_per_100_ci": [
+              -87.66666666666667,
+              -87.66666666666667
+            ],
+            "behavior": {
+              "af": 1.25,
+              "decision_time_ms": {
+                "mean": 25634.21923076923,
+                "samples": 520
+              },
+              "pfr": {
+                "count": 21,
+                "rate": 0.07
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 20,
+                "raises": 25
+              },
+              "vpip": {
+                "count": 64,
+                "rate": 0.21333333333333335
+              },
+              "wt_sd": {
+                "count": 46,
+                "rate": 0.6764705882352942
+              }
+            },
+            "hands": 300,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": -1,
+            "timeouts": {
+              "count": 29,
+              "per_hand": 0.09666666666666666
+            },
+            "total_delta_chips": -26300,
+            "run_name": "sixmax_llm_showdown",
+            "metrics_file": "artifacts/sixmax_llm_showdown/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 7
+      },
+      "GLM": {
+        "composite_rating": 1659.4,
+        "total_hands": 300,
+        "weighted_bb_per_100": -71.17,
+        "win_rate": 0.0,
+        "consistency": 1,
+        "technical_quality": 0.893,
+        "behavior_score": 1.0,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.1067,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "GLM",
+        "runs_data": [
+          {
+            "bb_per_100": -71.16666666666667,
+            "bb_per_100_ci": [
+              -71.16666666666667,
+              -71.16666666666667
+            ],
+            "behavior": {
+              "af": 1.3673469387755102,
+              "decision_time_ms": {
+                "mean": 17204.63172043011,
+                "samples": 744
+              },
+              "pfr": {
+                "count": 51,
+                "rate": 0.17
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 49,
+                "raises": 67
+              },
+              "vpip": {
+                "count": 131,
+                "rate": 0.43666666666666665
+              },
+              "wt_sd": {
+                "count": 98,
+                "rate": 0.7777777777777778
+              }
+            },
+            "hands": 300,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": -1,
+            "timeouts": {
+              "count": 32,
+              "per_hand": 0.10666666666666667
+            },
+            "total_delta_chips": -21350,
+            "run_name": "sixmax_llm_showdown",
+            "metrics_file": "artifacts/sixmax_llm_showdown/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 6
+      },
+      "GPT-5-Mini": {
+        "composite_rating": 2125.9,
+        "total_hands": 300,
+        "weighted_bb_per_100": 164.6,
+        "win_rate": 1.0,
+        "consistency": 1,
+        "technical_quality": 0.993,
+        "behavior_score": 0.9,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0067,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "GPT-5-Mini",
+        "runs_data": [
+          {
+            "bb_per_100": 164.60000000000002,
+            "bb_per_100_ci": [
+              164.60000000000002,
+              164.60000000000002
+            ],
+            "behavior": {
+              "af": 5.88,
+              "decision_time_ms": {
+                "mean": 15382.735334242838,
+                "samples": 733
+              },
+              "pfr": {
+                "count": 74,
+                "rate": 0.24666666666666667
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 25,
+                "raises": 147
+              },
+              "vpip": {
+                "count": 136,
+                "rate": 0.4533333333333333
+              },
+              "wt_sd": {
+                "count": 110,
+                "rate": 0.8029197080291971
+              }
+            },
+            "hands": 300,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": 1,
+            "timeouts": {
+              "count": 2,
+              "per_hand": 0.006666666666666667
+            },
+            "total_delta_chips": 49380,
+            "run_name": "sixmax_llm_showdown",
+            "metrics_file": "artifacts/sixmax_llm_showdown/metrics/metrics.json",
+            "mode": "sixmax"
+          }
+        ],
+        "rank": 1
+      }
+    },
+    "runs": [
+      {
+        "run_name": "sixmax_llm",
+        "agents": [
+          {
+            "name": "DeepSeek",
+            "bb_per_100": 0.0,
+            "hands": 6,
+            "total_delta_chips": 0
           },
-          "match_points": 1,
-          "timeouts": {
-            "count": 0,
-            "per_hand": 0.0
+          {
+            "name": "GPT5-Mini",
+            "bb_per_100": 75.0,
+            "hands": 6,
+            "total_delta_chips": 450
           },
-          "total_delta_chips": 20000,
-          "run_name": "test_experiment",
-          "metrics_file": "artifacts/test_experiment/metrics/metrics.json"
-        }
-      ],
-      "rank": 1
-    }
+          {
+            "name": "GPT5-Pro",
+            "bb_per_100": -8.333333333333332,
+            "hands": 6,
+            "total_delta_chips": -50
+          },
+          {
+            "name": "GPT5-nano",
+            "bb_per_100": -66.66666666666666,
+            "hands": 6,
+            "total_delta_chips": -400
+          },
+          {
+            "name": "Gemini",
+            "bb_per_100": 33.33333333333333,
+            "hands": 6,
+            "total_delta_chips": 200
+          },
+          {
+            "name": "Kimi",
+            "bb_per_100": -33.33333333333333,
+            "hands": 6,
+            "total_delta_chips": -200
+          }
+        ],
+        "hands": 6,
+        "max_abs_bb": 75.0
+      },
+      {
+        "run_name": "sixmax_llm_showdown",
+        "agents": [
+          {
+            "name": "DeepSeek",
+            "bb_per_100": -92.33333333333333,
+            "hands": 300,
+            "total_delta_chips": -27700
+          },
+          {
+            "name": "Doubao",
+            "bb_per_100": -87.66666666666667,
+            "hands": 300,
+            "total_delta_chips": -26300
+          },
+          {
+            "name": "GLM",
+            "bb_per_100": -71.16666666666667,
+            "hands": 300,
+            "total_delta_chips": -21350
+          },
+          {
+            "name": "GPT-5-Mini",
+            "bb_per_100": 164.60000000000002,
+            "hands": 300,
+            "total_delta_chips": 49380
+          },
+          {
+            "name": "Gemini",
+            "bb_per_100": 53.56666666666666,
+            "hands": 300,
+            "total_delta_chips": 16070
+          },
+          {
+            "name": "Kimi",
+            "bb_per_100": 33.0,
+            "hands": 300,
+            "total_delta_chips": 9900
+          }
+        ],
+        "hands": 300,
+        "max_abs_bb": 164.6
+      }
+    ],
+    "summary": {
+      "avg_rating": 1753.1,
+      "top_rating": 2125.9,
+      "rating_std": 183.4,
+      "avg_bb_per_100": 0.01,
+      "total_hands_played": 1836,
+      "competitive_agents": 4
+    },
+    "total_agents": 9,
+    "total_runs": 2,
+    "max_abs_bb": 164.6
   },
-  "runs": [],
-  "summary": {
-    "avg_rating": 1811.4,
-    "top_rating": 2196.2,
-    "rating_std": 191.3,
-    "avg_bb_per_100": 28.12,
-    "total_hands_played": 406,
-    "competitive_agents": 5
-  },
-  "total_agents": 10,
-  "total_runs": 10
+  "hu": {
+    "agents": {
+      "DeepSeek": {
+        "composite_rating": 1904.0,
+        "total_hands": 10,
+        "weighted_bb_per_100": 65.0,
+        "win_rate": 1.0,
+        "consistency": 1,
+        "technical_quality": 1.0,
+        "behavior_score": 1.0,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "DeepSeek",
+        "runs_data": [
+          {
+            "bb_per_100": 65.0,
+            "bb_per_100_ci": [
+              65.0,
+              65.0
+            ],
+            "behavior": {
+              "af": 1.0,
+              "decision_time_ms": {
+                "mean": 1859.608695652174,
+                "samples": 23
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.1
+              },
+              "postflop": {
+                "calls": 1,
+                "raises": 1
+              },
+              "vpip": {
+                "count": 3,
+                "rate": 0.3
+              },
+              "wt_sd": {
+                "count": 3,
+                "rate": 1.0
+              }
+            },
+            "hands": 10,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": 1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "total_delta_chips": 650,
+            "run_name": "gpt5_vs_deepseek",
+            "metrics_file": "artifacts/gpt5_vs_deepseek/metrics/metrics.json",
+            "mode": "hu"
+          }
+        ],
+        "rank": 1
+      },
+      "GPT5": {
+        "composite_rating": 1604.0,
+        "total_hands": 10,
+        "weighted_bb_per_100": -65.0,
+        "win_rate": 0.0,
+        "consistency": 1,
+        "technical_quality": 1.0,
+        "behavior_score": 0.6,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "GPT5",
+        "runs_data": [
+          {
+            "bb_per_100": -65.0,
+            "bb_per_100_ci": [
+              -65.0,
+              -65.0
+            ],
+            "behavior": {
+              "af": 2.0,
+              "decision_time_ms": {
+                "mean": 13935.894736842105,
+                "samples": 19
+              },
+              "pfr": {
+                "count": 10,
+                "rate": 1.0
+              },
+              "postflop": {
+                "calls": 0,
+                "raises": 2
+              },
+              "vpip": {
+                "count": 10,
+                "rate": 1.0
+              },
+              "wt_sd": {
+                "count": 9,
+                "rate": 3.0
+              }
+            },
+            "hands": 10,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": -1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "total_delta_chips": -650,
+            "run_name": "gpt5_vs_deepseek",
+            "metrics_file": "artifacts/gpt5_vs_deepseek/metrics/metrics.json",
+            "mode": "hu"
+          }
+        ],
+        "rank": 2
+      }
+    },
+    "summary": {
+      "avg_rating": 1754.0,
+      "top_rating": 1904.0,
+      "rating_std": 212.1,
+      "avg_bb_per_100": 0.0,
+      "total_hands_played": 20,
+      "competitive_agents": 1
+    },
+    "total_agents": 2,
+    "total_runs": 2
+  }
 }

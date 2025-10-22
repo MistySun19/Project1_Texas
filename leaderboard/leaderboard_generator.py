@@ -13,7 +13,7 @@ import pathlib
 import statistics
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, DefaultDict
 import glob
 
 
@@ -22,15 +22,27 @@ class LeaderboardGenerator:
         self.artifacts_dir = pathlib.Path(artifacts_dir)
         self.leaderboard_data = {
             "last_updated": datetime.now().isoformat(),
-            "agents": {},
-            "runs": [],
-            "summary": {}
+            "sixmax": {
+                "agents": {},
+                "runs": [],
+                "summary": {},
+                "total_agents": 0,
+                "total_runs": 0,
+                "max_abs_bb": 0,
+            },
+            "hu": {
+                "agents": {},
+                "summary": {},
+                "total_agents": 0,
+                "total_runs": 0,
+            },
         }
     
-    def collect_all_metrics(self) -> Dict[str, List[Dict]]:
-        """Collect all metrics from artifacts directory"""
-        all_metrics = defaultdict(list)
-        
+    def collect_all_metrics(self) -> Tuple[Dict[str, List[Dict]], Dict[str, Dict[str, Any]]]:
+        """Collect all metrics from artifacts directory."""
+        all_metrics: DefaultDict[str, List[Dict]] = defaultdict(list)
+        sixmax_runs: Dict[str, Dict[str, Any]] = {}
+
         # Find all metrics.json files
         metrics_files = list(self.artifacts_dir.glob("*/metrics/metrics.json"))
         
@@ -40,27 +52,83 @@ class LeaderboardGenerator:
                 with open(metrics_file, 'r') as f:
                     data = json.load(f)
                 
-                # Handle both single-agent and multi-agent formats
                 if isinstance(data, dict) and "bb_per_100" in data:
-                    # Single agent format (like demo.json)
                     agent_name = self._extract_agent_name_from_path(metrics_file)
-                    data["run_name"] = run_name
-                    data["metrics_file"] = str(metrics_file)
-                    all_metrics[agent_name].append(data)
-                else:
-                    # Multi-agent format (like sixmax_llm.json)
-                    for agent_name, agent_data in data.items():
-                        if isinstance(agent_data, dict) and "bb_per_100" in agent_data:
-                            agent_data["run_name"] = run_name
-                            agent_data["metrics_file"] = str(metrics_file)
-                            all_metrics[agent_name].append(agent_data)
+                    mode = self._infer_mode(run_name, metrics_file, agent_count=1)
+                    entry = {
+                        **data,
+                        "run_name": run_name,
+                        "metrics_file": str(metrics_file),
+                        "mode": mode,
+                    }
+                    all_metrics[agent_name].append(entry)
+                    if mode == "sixmax":
+                        self._append_sixmax_run(sixmax_runs, run_name, agent_name, entry)
+                elif isinstance(data, dict):
+                    agent_items = [
+                        (agent_name, agent_data)
+                        for agent_name, agent_data in data.items()
+                        if isinstance(agent_data, dict) and "bb_per_100" in agent_data
+                    ]
+                    if not agent_items:
+                        continue
+
+                    mode = self._infer_mode(
+                        run_name, metrics_file, agent_count=len(agent_items)
+                    )
+                    for agent_name, agent_data in agent_items:
+                        entry = {
+                            **agent_data,
+                            "run_name": run_name,
+                            "metrics_file": str(metrics_file),
+                            "mode": mode,
+                        }
+                        all_metrics[agent_name].append(entry)
+                        if mode == "sixmax":
+                            self._append_sixmax_run(
+                                sixmax_runs, run_name, agent_name, entry
+                            )
                             
             except Exception as e:
                 print(f"Error reading {metrics_file}: {e}")
                 continue
         
-        return all_metrics
+        for run in sixmax_runs.values():
+            agents = run.get("agents", [])
+            if agents:
+                run["max_abs_bb"] = max(abs(agent.get("bb_per_100", 0)) for agent in agents)
+                run["hands"] = max(agent.get("hands", 0) for agent in agents)
+            else:
+                run["max_abs_bb"] = 0
+                run["hands"] = 0
+            run["agents"] = agents[:6]
+        
+        return all_metrics, sixmax_runs
     
+    def _append_sixmax_run(
+        self,
+        runs: Dict[str, Dict[str, Any]],
+        run_name: str,
+        agent_name: str,
+        entry: Dict[str, Any],
+    ) -> None:
+        run_record = runs.setdefault(
+            run_name,
+            {
+                "run_name": run_name,
+                "agents": [],
+                "metrics_file": entry.get("metrics_file"),
+            },
+        )
+        run_record["agents"].append(
+            {
+                "name": agent_name,
+                "bb_per_100": entry.get("bb_per_100", 0.0),
+                "hands": entry.get("hands", 0),
+                "total_delta_chips": entry.get("total_delta_chips", entry.get("total_delta", 0)),
+            }
+        )
+
     def _extract_agent_name_from_path(self, metrics_file: pathlib.Path) -> str:
         """Extract agent name from file path for single-agent runs"""
         run_name = metrics_file.parent.parent.name
@@ -68,6 +136,25 @@ class LeaderboardGenerator:
         if "demo" in run_name.lower():
             return "Demo Agent"
         return run_name.replace("_", " ").title()
+
+    def _infer_mode(
+        self,
+        run_name: str,
+        metrics_file: pathlib.Path,
+        agent_count: int | None = None,
+    ) -> str:
+        """Infer whether the run is for HU or Six-Max benchmarks."""
+        tokens = (run_name + " " + str(metrics_file)).lower()
+        if any(keyword in tokens for keyword in ("sixmax", "6max", "6-max", "six-max")):
+            return "sixmax"
+        if any(keyword in tokens for keyword in ("hu", "heads-up", "headsup", "heads_up")):
+            return "hu"
+        if agent_count is not None:
+            if agent_count >= 4:
+                return "sixmax"
+            if agent_count == 2:
+                return "hu"
+        return "unknown"
     
     def calculate_composite_score(self, agent_data: List[Dict]) -> Dict[str, Any]:
         """Calculate comprehensive agent statistics and composite score"""
@@ -187,37 +274,115 @@ class LeaderboardGenerator:
         }
     
     def generate_leaderboard(self) -> Dict[str, Any]:
-        """Generate complete leaderboard data"""
-        all_metrics = self.collect_all_metrics()
-        
-        agent_stats = {}
+        """Generate complete leaderboard data grouped by table size."""
+        all_metrics, sixmax_runs = self.collect_all_metrics()
+
+        sixmax_stats: Dict[str, Any] = {}
+        hu_stats: Dict[str, Any] = {}
+
         for agent_name, runs in all_metrics.items():
-            stats = self.calculate_composite_score(runs)
-            if stats:  # Only include agents with valid data
-                agent_stats[agent_name] = stats
-                agent_stats[agent_name]["name"] = agent_name
-                agent_stats[agent_name]["runs_data"] = runs  # Keep original data
-        
-        # Sort by composite rating
-        sorted_agents = sorted(agent_stats.items(), 
-                             key=lambda x: x[1]["composite_rating"], 
-                             reverse=True)
-        
-        # Add rankings
+            runs_by_mode: DefaultDict[str, List[Dict]] = defaultdict(list)
+            for run in runs:
+                runs_by_mode[run.get("mode", "unknown")].append(run)
+
+            if runs_by_mode.get("sixmax"):
+                six_stats = self.calculate_composite_score(runs_by_mode["sixmax"])
+                if six_stats:
+                    six_stats["name"] = agent_name
+                    six_stats["runs_data"] = runs_by_mode["sixmax"]
+                    sixmax_stats[agent_name] = six_stats
+
+            if runs_by_mode.get("hu"):
+                hu_stats_entry = self.calculate_composite_score(runs_by_mode["hu"])
+                if hu_stats_entry:
+                    hu_stats_entry["name"] = agent_name
+                    hu_stats_entry["runs_data"] = runs_by_mode["hu"]
+                    hu_stats[agent_name] = hu_stats_entry
+
+        self.leaderboard_data["last_updated"] = datetime.now().isoformat()
+        self.leaderboard_data["sixmax"] = self._prepare_sixmax_payload(
+            sixmax_stats, sixmax_runs
+        )
+        self.leaderboard_data["hu"] = self._prepare_hu_payload(hu_stats)
+
+        return self.leaderboard_data
+
+    def _prepare_sixmax_payload(
+        self,
+        agent_stats: Dict[str, Any],
+        run_map: Dict[str, Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        if not agent_stats and not run_map:
+            return {
+                "agents": {},
+                "runs": [],
+                "summary": {},
+                "total_agents": 0,
+                "total_runs": 0,
+                "max_abs_bb": 0,
+            }
+
+        sorted_agents = sorted(
+            agent_stats.items(),
+            key=lambda x: x[1]["composite_rating"],
+            reverse=True,
+        )
         for rank, (agent_name, data) in enumerate(sorted_agents, 1):
             agent_stats[agent_name]["rank"] = rank
-        
-        # Generate summary statistics
+
+        summary = self._generate_summary(agent_stats) if agent_stats else {}
+
+        runs_payload: List[Dict[str, Any]] = []
+        max_abs_bb = 0.0
+        for run_name, run in sorted(run_map.items()):
+            agents = run.get("agents", [])[:6]
+            local_max = max((abs(agent.get("bb_per_100", 0)) for agent in agents), default=0)
+            runs_payload.append(
+                {
+                    "run_name": run_name,
+                    "agents": agents,
+                    "hands": run.get("hands", 0),
+                    "max_abs_bb": round(local_max, 4),
+                }
+            )
+            max_abs_bb = max(max_abs_bb, local_max)
+
+        return {
+            "agents": agent_stats,
+            "runs": runs_payload,
+            "summary": summary,
+            "total_agents": len(agent_stats),
+            "total_runs": len(run_map),
+            "max_abs_bb": round(max_abs_bb, 4),
+        }
+
+    def _prepare_hu_payload(self, agent_stats: Dict[str, Any]) -> Dict[str, Any]:
+        """Prepare payload for a specific leaderboard category."""
+        if not agent_stats:
+            return {
+                "agents": {},
+                "total_agents": 0,
+                "total_runs": 0,
+                "summary": {},
+            }
+
+        sorted_agents = sorted(
+            agent_stats.items(),
+            key=lambda x: x[1]["composite_rating"],
+            reverse=True,
+        )
+        for rank, (agent_name, data) in enumerate(sorted_agents, 1):
+            agent_stats[agent_name]["rank"] = rank
+
         summary = self._generate_summary(agent_stats)
-        
-        self.leaderboard_data.update({
+        total_runs = sum(stat["runs_count"] for stat in agent_stats.values())
+
+        return {
             "agents": agent_stats,
             "summary": summary,
             "total_agents": len(agent_stats),
-            "total_runs": len(all_metrics),
-        })
-        
-        return self.leaderboard_data
+            "total_runs": total_runs,
+        }
     
     def _generate_summary(self, agent_stats: Dict[str, Any]) -> Dict[str, Any]:
         """Generate summary statistics"""
@@ -262,19 +427,25 @@ def main():
     
     # Print summary
     print(f"\n📊 Leaderboard Summary:")
-    print(f"Total Agents: {leaderboard_data['total_agents']}")
-    print(f"Total Runs: {leaderboard_data['total_runs']}")
-    
-    if leaderboard_data['agents']:
-        # Show top 5 agents
-        sorted_agents = sorted(leaderboard_data['agents'].items(), 
-                             key=lambda x: x[1]['rank'])
-        
-        print(f"\n🥇 Top 5 Agents:")
-        for agent_name, data in sorted_agents[:5]:
-            print(f"{data['rank']}. {agent_name}: "
-                  f"{data['composite_rating']} rating "
-                  f"({data['weighted_bb_per_100']:+.1f} bb/100)")
+    for mode in ("sixmax", "hu"):
+        category = leaderboard_data.get(mode, {})
+        print(f"\n[{mode.upper()}]")
+        print(f"  Agents: {category.get('total_agents', 0)}")
+        print(f"  Runs: {category.get('total_runs', 0)}")
+        agents = category.get("agents", {})
+        if agents:
+            sorted_agents = sorted(
+                agents.items(), key=lambda x: x[1]["rank"]
+            )
+            top_agents = sorted_agents[:5]
+            for agent_name, data in top_agents:
+                print(
+                    f"  {data['rank']}. {agent_name}: "
+                    f"{data['composite_rating']} rating "
+                    f"({data['weighted_bb_per_100']:+.1f} bb/100)"
+                )
+        else:
+            print("  No data")
     
     print(f"\n✅ Leaderboard generated successfully!")
     return output_file
