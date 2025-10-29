@@ -1,0 +1,5 @@
+{"payload": {"blinds": {"bb": 100, "sb": 50}, "button_seat": 0, "hand_id": "601-0-0", "hand_index": 0, "replica_id": 0, "rng_tag": "601:0:0", "seats": {"0": {"name": "Kimi", "stack": 10000}, "1": {"name": "DeepSeek", "stack": 10000}}, "seed": 601, "table_id": "green-hu"}, "ts": "2025-10-23T00:25:39.438953+00:00", "type": "hand_start"}
+{"payload": {"cards": ["4c", "Kh"], "hand_id": "601-0-0", "seat": 0}, "ts": "2025-10-23T00:25:39.439099+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["2h", "Qd"], "hand_id": "601-0-0", "seat": 1}, "ts": "2025-10-23T00:25:39.439113+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 0, "type": "small"}, "ts": "2025-10-23T00:25:39.439124+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 1, "type": "big"}, "ts": "2025-10-23T00:25:39.439132+00:00", "type": "blind"}

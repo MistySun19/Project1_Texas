@@ -17,6 +17,7 @@ from .agents.qwen_agent import QwenAgent
 from .agents.cohere_agent import CohereAgent
 from .agents.doubao_agent import DoubaoAgent
 from .agents.glm_agent import GLMAgent
+from .agents.agentbeats_remote import AgentBeatsRemoteAgent
 
 BASELINE_FACTORIES: Dict[str, Callable[..., Any]] = {
     "random-hu": RandomAgent,
@@ -40,7 +41,9 @@ BASELINE_FACTORIES: Dict[str, Callable[..., Any]] = {
     "doubao-hu": DoubaoAgent,
     "doubao-6": DoubaoAgent,
     "glm-hu": GLMAgent,
-    "glm-6": GLMAgent
+    "glm-6": GLMAgent,
+    "agentbeats-remote-hu": AgentBeatsRemoteAgent,
+    "agentbeats-remote-6": AgentBeatsRemoteAgent,
 }
 
 

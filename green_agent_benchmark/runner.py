@@ -8,7 +8,7 @@ import json
 import pathlib
 import random
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 
 from .baseline_registry import make_baseline
 from .agents.base import load_agent as load_custom_agent
@@ -19,6 +19,7 @@ from .engine import (
     HoldemEngine,
     PlayerRuntimeState,
     build_deck_from_seed,
+    generate_hand_id,
     seat_after,
 )
 from .logging_utils import NDJSONLogger
@@ -150,10 +151,16 @@ class BenchmarkRunner:
     High-level orchestrator for the Green Agent Benchmark.
     """
 
-    def __init__(self, config: SeriesConfig, output_dir: str | pathlib.Path) -> None:
+    def __init__(
+        self,
+        config: SeriesConfig,
+        output_dir: str | pathlib.Path,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> None:
         self.config = config
         self.output_dir = pathlib.Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.progress_callback = progress_callback
         self.engine_config = EngineConfig(
             seat_count=2 if config.mode == "hu" else 6,
             small_blind=config.blinds["sb"],
@@ -211,6 +218,15 @@ class BenchmarkRunner:
             else:
                 opponent_name = opponent_cycle[seed_idx % len(opponent_cycle)]
                 print(f"[BenchmarkRunner] HU seed {seed} vs {opponent_name}")
+            self._emit_progress(
+                {
+                    "type": "seed_start",
+                    "mode": "hu",
+                    "seed": seed,
+                    "seed_index": seed_idx,
+                    "use_full_lineup": use_full_lineup,
+                }
+            )
 
             for replica_id in range(replicas):
                 if use_full_lineup:
@@ -240,6 +256,24 @@ class BenchmarkRunner:
                 log_path = log_dir / f"seed{seed}_rep{replica_id}.ndjson"
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 log_paths.append(log_path)
+
+                self._emit_progress(
+                    {
+                        "type": "replica_start",
+                        "mode": "hu",
+                        "seed": seed,
+                        "replica": replica_id,
+                        "button_seat": button_seat,
+                        "agent": {
+                            "name": agent_iface.name,
+                            "seat": agent_seat,
+                        },
+                        "opponent": {
+                            "name": opponent_iface.name,
+                            "seat": opponent_seat,
+                        },
+                    }
+                )
 
                 with NDJSONLogger(log_path) as logger:
                     engine = HoldemEngine(self.engine_config, logger)
@@ -311,6 +345,35 @@ class BenchmarkRunner:
                                 log_path=str(log_path),
                             )
                         )
+
+                        hand_event = {
+                            "type": "hand_result",
+                            "hand_id": generate_hand_id(seed, hand_index, replica_id),
+                            "mode": "hu",
+                            "seed": seed,
+                            "replica": replica_id,
+                            "hand_index": hand_index,
+                            "button_seat": button_seat,
+                            "players": [
+                                {
+                                    "name": agent_iface.name,
+                                    "seat": agent_seat,
+                                    "position": positions[agent_seat],
+                                    "delta": deltas.get(agent_seat, 0),
+                                    "timeouts": post_timeouts[agent_seat] - prev_timeouts[agent_seat],
+                                    "illegal_actions": post_illegal[agent_seat] - prev_illegal[agent_seat],
+                                },
+                                {
+                                    "name": opponent_iface.name,
+                                    "seat": opponent_seat,
+                                    "position": positions[opponent_seat],
+                                    "delta": deltas.get(opponent_seat, 0),
+                                    "timeouts": post_timeouts[opponent_seat] - prev_timeouts[opponent_seat],
+                                    "illegal_actions": post_illegal[opponent_seat] - prev_illegal[opponent_seat],
+                                },
+                            ],
+                        }
+                        self._emit_progress(hand_event)
         return records, log_paths
 
     def _run_sixmax(self, agent) -> Tuple[List[HandRecord], List[pathlib.Path]]:
@@ -324,6 +387,14 @@ class BenchmarkRunner:
 
         for seed in self.config.seeds:
             print(f"[BenchmarkRunner] 6-max seed {seed}")
+            self._emit_progress(
+                {
+                    "type": "seed_start",
+                    "mode": "sixmax",
+                    "seed": seed,
+                    "use_full_lineup": use_full_lineup,
+                }
+            )
             if use_full_lineup:
                 base_assignment = list(self.config.lineup or [])
             else:
@@ -370,6 +441,22 @@ class BenchmarkRunner:
                             stack=self.engine_config.starting_stack,
                         )
 
+                    assignment_event = {
+                        "type": "replica_start",
+                        "mode": "sixmax",
+                        "seed": seed,
+                        "replica": replica_id,
+                        "assignment": [
+                            {
+                                "seat": seat,
+                                "name": interfaces[seat].name,
+                                "label": rotated[seat],
+                            }
+                            for seat in sorted(interfaces)
+                        ],
+                    }
+                    self._emit_progress(assignment_event)
+
                     for hand_index in range(self.config.hands_per_replica):
                         print(
                             f"[BenchmarkRunner] 6-max hand seed={seed} replica={replica_id} hand_index={hand_index}"
@@ -414,6 +501,27 @@ class BenchmarkRunner:
                                     log_path=str(log_path),
                                 )
                             )
+                        hand_event = {
+                            "type": "hand_result",
+                            "hand_id": generate_hand_id(seed, hand_index, replica_id),
+                            "mode": "sixmax",
+                            "seed": seed,
+                            "replica": replica_id,
+                            "hand_index": hand_index,
+                            "button_seat": button_seat,
+                            "players": [
+                                {
+                                    "name": interfaces[seat].name,
+                                    "seat": seat,
+                                    "position": positions[seat],
+                                    "delta": deltas.get(seat, 0),
+                                    "timeouts": post_timeouts[seat] - prev_timeouts[seat],
+                                    "illegal_actions": post_illegal[seat] - prev_illegal[seat],
+                                }
+                                for seat in sorted(interfaces)
+                            ],
+                        }
+                        self._emit_progress(hand_event)
                 log_paths.append(log_path)
         return records, log_paths
 
@@ -453,12 +561,13 @@ class BenchmarkRunner:
             baseline_name = base.split(":", 1)[1]
             kwargs: Dict[str, Any] = {}
             if sep:
+                from urllib.parse import unquote_plus
                 for item in params.split("&"):
                     if not item:
                         continue
                     key, _, value = item.partition("=")
                     if key:
-                        kwargs[key] = value
+                        kwargs[key] = unquote_plus(value)
             display_name = kwargs.pop("name", None)
             agent_obj = make_baseline(baseline_name, **kwargs)
             if display_name:
@@ -469,3 +578,11 @@ class BenchmarkRunner:
         except ValueError:
             agent_obj = load_custom_agent(spec)
         return self._apply_global_overrides(agent_obj)
+
+    def _emit_progress(self, event: Dict[str, Any]) -> None:
+        if not self.progress_callback:
+            return
+        try:
+            self.progress_callback(event)
+        except Exception as exc:
+            print(f"[BenchmarkRunner] progress callback failed: {exc}")

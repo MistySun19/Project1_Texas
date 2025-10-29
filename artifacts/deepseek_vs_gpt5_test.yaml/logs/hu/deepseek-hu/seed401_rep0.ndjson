@@ -1,0 +1,6 @@
+{"payload": {"blinds": {"bb": 100, "sb": 50}, "button_seat": 0, "hand_id": "401-0-0", "hand_index": 0, "replica_id": 0, "rng_tag": "401:0:0", "seats": {"0": {"name": "Random", "stack": 10000}, "1": {"name": "DeepSeek", "stack": 10000}}, "seed": 401, "table_id": "green-hu"}, "ts": "2025-10-23T00:22:16.105211+00:00", "type": "hand_start"}
+{"payload": {"cards": ["Th", "9h"], "hand_id": "401-0-0", "seat": 0}, "ts": "2025-10-23T00:22:16.105377+00:00", "type": "deal_hole"}
+{"payload": {"cards": ["Kh", "6s"], "hand_id": "401-0-0", "seat": 1}, "ts": "2025-10-23T00:22:16.105393+00:00", "type": "deal_hole"}
+{"payload": {"amount": 50, "seat": 0, "type": "small"}, "ts": "2025-10-23T00:22:16.105406+00:00", "type": "blind"}
+{"payload": {"amount": 100, "seat": 1, "type": "big"}, "ts": "2025-10-23T00:22:16.105416+00:00", "type": "blind"}
+{"payload": {"action": "fold", "amount": null, "bet": 50, "elapsed_ms": 1, "hand_id": "401-0-0", "min_raise_to": 200, "pot": 150, "pot_delta": 0, "seat": 0, "stack_after": 9950, "street": "preflop", "to_call": 50}, "ts": "2025-10-23T00:22:16.105450+00:00", "type": "action"}
