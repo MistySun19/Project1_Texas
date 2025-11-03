@@ -1,176 +1,90 @@
-# Green Agent Benchmark# Green Agent Benchmark
+# Green Agent Benchmark
 
+Reference implementation of the **Green Agent Benchmark** for evaluating language-model and rule-based poker agents in real-time No-Limit Texas Hold'em environments. The project follows the design outlined in the prompt: variance-controlled heads-up (HU) and 6-max tracks, deterministic logs, governance hooks, and reproducible metrics.
 
+## 📖 Documentation
 
-🎰 **实时No-Limit Texas Hold'em AI评估框架** Reference implementation of the **Green Agent Benchmark** for evaluating language-model and rule-based poker agents in real-time No-Limit Texas Hold'em environments. The project follows the design outlined in the prompt: variance-controlled heads-up (HU) and 6-max tracks, deterministic logs, governance hooks, and reproducible metrics.
-
-
-
-评估大语言模型(LLM)和规则型代理在德州扑克环境中的战略智能表现。## 📖 Documentation
-
-
-
-## ⚡ 快速开始- **[Quick Start Guide](QUICK_START.md)** - 5分钟快速上手
-
+- **[Quick Start Guide](QUICK_START.md)** - 5分钟快速上手
 - **[Complete Usage Guide](USAGE_GUIDE.md)** - 详细使用说明文档  
+- **[API Reference](API_REFERENCE.md)** - 完整API参考文档
+- **[Architecture Documentation](docs/ARCHITECTURE.md)** - 系统架构详解
+- **[AgentBeats Integration](docs/AGENTBEATS.md)** - 平台集成说明
 
-```bash- **[API Reference](API_REFERENCE.md)** - 完整API参考文档
+## Features
 
-# 安装- **[Architecture Documentation](docs/ARCHITECTURE.md)** - 系统架构详解
-
-git clone https://github.com/lusunjia/Project1_Texas.git- **[AgentBeats Integration](docs/AGENTBEATS.md)** - 平台集成说明
-
-cd Project1_Texas
-
-pip install -r requirements.txt## Features
-
-
-
-# 运行测试- NLHE engine with blinds, side pots, duplicate HU replication, and 6-max seat balancing.
-
-python -m green_agent_benchmark.cli \- Agent-to-Agent (A2A) style interface with timeout, illegal-action, and governance penalties plus NDJSON telemetry.
-
-  --config configs/demo_hu_10hands.yaml \- Baseline agents (`Random`, `TAG`, `CFR-lite`) covering social/random, range-based, and solver-inspired behaviours.
-
-  --agent baseline:random-hu \- Metrics pipeline computing `bb/100`, confidence intervals, match points, VPIP/PFR/AF/WTSD, timeout and illegal rates, and average decision speed directly from logs.
-
-  --output artifacts/quick_test- Config-driven runner with YAML schedules for dev/test style executions.
-
+- NLHE engine with blinds, side pots, duplicate HU replication, and 6-max seat balancing.
+- Agent-to-Agent (A2A) style interface with timeout, illegal-action, and governance penalties plus NDJSON telemetry.
+- Baseline agents (`Random`, `TAG`, `CFR-lite`) covering social/random, range-based, and solver-inspired behaviours.
+- Metrics pipeline computing `bb/100`, confidence intervals, match points, VPIP/PFR/AF/WTSD, timeout and illegal rates, and average decision speed directly from logs.
+- Config-driven runner with YAML schedules for dev/test style executions.
 - Command line interface and reusable Python API for integrating custom agents.
 
-# 查看排行榜
+## Repository Layout
 
-python leaderboard/leaderboard_generator.py## Repository Layout
-
-python leaderboard/server.py  # http://localhost:8000
-
-``````
-
+```
 Project1_Texas/
-
-## 📚 完整文档├── green_agent_benchmark/    # 核心评估框架
-
+├── green_agent_benchmark/    # 核心评估框架
 │   ├── engine.py            # NLHE游戏引擎和状态机
-
-| 文档 | 内容 | 适合人群 |│   ├── runner.py            # 实验协调和副本逻辑
-
-|------|------|----------|│   ├── metrics.py           # 日志聚合和指标计算
-
-| **[快速开始](QUICK_START.md)** | 5分钟上手指南 | 新用户 |│   ├── agents/              # 基线代理实现(LLM+规则型)
-
-| **[使用指南](USAGE_GUIDE.md)** | 完整使用说明 | 所有用户 |  │   ├── cli.py               # 命令行接口
-
-| **[API参考](API_REFERENCE.md)** | 开发者API文档 | 开发者 |│   └── schemas.py           # 数据结构定义
-
-| **[项目详情](PROJECT_OVERVIEW.md)** | 完整项目说明 | 深度用户 |├── leaderboard/             # Web排行榜系统
-
-| **[架构文档](docs/ARCHITECTURE.md)** | 系统架构详解 | 贡献者 |│   ├── leaderboard_generator.py  # 排行榜数据生成
-
+│   ├── runner.py            # 实验协调和副本逻辑
+│   ├── metrics.py           # 日志聚合和指标计算
+│   ├── agents/              # 基线代理实现(LLM+规则型)
+│   ├── cli.py               # 命令行接口
+│   └── schemas.py           # 数据结构定义
+├── leaderboard/             # Web排行榜系统
+│   ├── leaderboard_generator.py  # 排行榜数据生成
 │   ├── server.py            # Web服务器
-
-## 🏆 核心特性│   └── index.html           # 前端界面
-
+│   └── index.html           # 前端界面
 ├── configs/                 # 实验配置文件
-
-- ✅ **双模式支持**: Heads-Up (2人) + 6-Max (6人)│   ├── dev_hu.yaml          # HU开发配置
-
-- ✅ **方差控制**: Duplicate-HU匹配，位置平衡副本│   ├── dev_6max.yaml        # 6-max开发配置
-
-- ✅ **多LLM支持**: GPT-5, DeepSeek, Gemini, Kimi等│   └── sixmax_llm_showdown.yaml  # LLM对决配置
-
-- ✅ **统计严谨**: bb/100指标，Bootstrap置信区间├── artifacts/               # 实验结果存储
-
-- ✅ **完全可复现**: 确定性种子，NDJSON日志├── scripts/                 # 辅助脚本
-
-- ✅ **Web排行榜**: 实时更新的交互式界面├── docs/                    # 技术文档
-
+│   ├── dev_hu.yaml          # HU开发配置
+│   ├── dev_6max.yaml        # 6-max开发配置
+│   └── sixmax_llm_showdown.yaml  # LLM对决配置
+├── artifacts/               # 实验结果存储
+├── scripts/                 # 辅助脚本
+├── docs/                    # 技术文档
 ├── USAGE_GUIDE.md           # 完整使用指南
-
-## 🔧 支持的代理类型└── QUICK_START.md           # 快速开始指南
-
+└── QUICK_START.md           # 快速开始指南
 ```
 
-| 类型 | 示例 | 说明 |
+## Installation
 
-|------|------|------|## Installation
-
-| **基线代理** | Random, TAG, CFR-lite | 规则和策略型基线 |
-
-| **LLM代理** | GPT-5, DeepSeek, Gemini | 大语言模型代理 |  Requires Python 3.10+.
-
-| **自定义代理** | 用户实现 | 实现Agent接口 |
+Requires Python 3.10+.
 
 ```bash
-
-## 📊 实验配置python -m venv .venv
-
+python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-
-```yamlpython -m pip install -r requirements.txt
-
-# HU模式 (configs/dev_hu.yaml)```
-
-mode: hu
-
-blinds: {sb: 50, bb: 100}Optional dev extras (pytest) are declared in `pyproject.toml`.
-
-seeds: [101, 102, 103]
-
-hands_per_seed: 1000Environment secrets (e.g. `OPENAI_API_KEY`) can be stored in a local `.env`
-
-replicas: 2file; the CLI automatically loads it if present.
-
-opponent_mix:
-
-  random-hu: 0.3## Running the Benchmark
-
-  tag-hu: 0.5
-
-  cfr-lite-hu: 0.2### 1. Use packaged baselines
-
+python -m pip install -r requirements.txt
 ```
 
+Optional dev extras (pytest) are declared in `pyproject.toml`.
+
+Environment secrets (e.g. `OPENAI_API_KEY`) can be stored in a local `.env`
+file; the CLI automatically loads it if present.
+
+## Running the Benchmark
+
+### 1. Use packaged baselines
+
 ```bash
-
-## 🌟 项目亮点python -m green_agent_benchmark.cli \
-
+python -m green_agent_benchmark.cli \
   --config configs/dev_hu.yaml \
-
-这是首个提供**生产级治理**和**统计严谨性**的LLM扑克评估框架：  --agent baseline:tag-hu \
-
+  --agent baseline:tag-hu \
   --output artifacts/demo_hu
+```
 
-- 🎯 **真实环境**: 完整的NLHE游戏引擎，非简化版本```
+### 2. Custom agent module
 
-- 📈 **科学评估**: 方差控制技术，减少运气因素60-80%  
+Implement an agent with the interface:
 
-- 🛡️ **系统治理**: 超时处理，非法动作检测，资源限制### 2. Custom agent module
-
-- 🔄 **完全可复现**: 相同种子保证相同结果
-
-- 🌐 **易于扩展**: 模块化设计，支持新代理和新指标Implement an agent with the interface:
-
-
-
-## 📞 获取帮助```python
-
+```python
 from green_agent_benchmark.schemas import ActionRequest, ActionResponse
 
-- 📖 **快速问题**: 查看 [QUICK_START.md](QUICK_START.md)
 
-- 🔍 **详细问题**: 查看 [USAGE_GUIDE.md](USAGE_GUIDE.md) 
+class MyAgent:
+    name = "my-agent"
 
-- 🐛 **Bug报告**: GitHub Issuesclass MyAgent:
-
-- 💬 **技术讨论**: GitHub Discussions    name = "my-agent"
-
-
-
----    def reset(self, seat_id: int, table_config: dict) -> None:
-
+    def reset(self, seat_id: int, table_config: dict) -> None:
         ...  # optional per-hand reset
 
-**开始你的LLM扑克AI评估之旅！** 🚀
     def act(self, request: ActionRequest) -> ActionResponse:
         return ActionResponse(action="fold")
 ```
