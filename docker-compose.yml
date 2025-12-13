@@ -1,0 +1,55 @@
+# Texas Hold'em Evaluation - Local Testing
+#
+# Usage:
+#   docker compose up
+#
+# This will start:
+# - Green agent (evaluator) on port 8001
+# - Blue agent on port 9019
+# - Red agent on port 9020
+
+version: '3.8'
+
+services:
+  # Green Agent - The evaluator
+  evaluator:
+    build:
+      context: .
+      dockerfile: Dockerfile.evaluator
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["--host", "0.0.0.0", "--port", "8001"]
+    networks:
+      - poker-net
+
+  # Blue Agent - Defender
+  blue-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    ports:
+      - "9019:9019"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["--host", "0.0.0.0", "--port", "9019", "--name", "BlueAgent", "--role", "blue"]
+    networks:
+      - poker-net
+
+  # Red Agent - Attacker
+  red-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    ports:
+      - "9020:9020"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["--host", "0.0.0.0", "--port", "9020", "--name", "RedAgent", "--role", "red"]
+    networks:
+      - poker-net
+
+networks:
+  poker-net:
+    driver: bridge

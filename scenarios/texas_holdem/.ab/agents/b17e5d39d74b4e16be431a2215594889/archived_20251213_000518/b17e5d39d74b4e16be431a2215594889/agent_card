@@ -1,0 +1,46 @@
+{
+  "additionalInterfaces": null,
+  "capabilities": {
+    "extensions": null,
+    "pushNotifications": null,
+    "stateTransitionHistory": null,
+    "streaming": true
+  },
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ],
+  "description": "Texas Hold'em Poker Judge - Evaluates poker matches between two AI agents",
+  "documentationUrl": null,
+  "iconUrl": null,
+  "name": "TexasHoldemJudge",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "provider": null,
+  "security": null,
+  "securitySchemes": null,
+  "signatures": null,
+  "skills": [
+    {
+      "description": "Orchestrate and judge Texas Hold'em poker matches between two AI agents.",
+      "examples": [
+        "\n{\n  \"participants\": {\n    \"player_0\": \"https://player0.example.com:443\",\n    \"player_1\": \"https://player1.example.com:8443\"\n  },\n  \"config\": {\n    \"num_hands\": 10,\n    \"starting_stack\": 1000,\n    \"small_blind\": 10,\n    \"big_blind\": 20\n  }\n}\n"
+      ],
+      "id": "evaluate_texas_holdem",
+      "inputModes": null,
+      "name": "Evaluates Texas Hold'em poker matches",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "poker",
+        "texas-holdem",
+        "evaluation"
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": null,
+  "url": "http://judge.texas-agent.org/to_agent/b17e5d39d74b4e16be431a2215594889",
+  "version": "1.0.0"
+}

@@ -1,0 +1,48 @@
+{
+  "additionalInterfaces": null,
+  "capabilities": {
+    "extensions": null,
+    "pushNotifications": null,
+    "stateTransitionHistory": null,
+    "streaming": true
+  },
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ],
+  "description": "A Texas Hold'em poker player agent",
+  "documentationUrl": null,
+  "iconUrl": null,
+  "name": "PokerPlayer",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "provider": null,
+  "security": null,
+  "securitySchemes": null,
+  "signatures": null,
+  "skills": [
+    {
+      "description": "Plays No-Limit Texas Hold'em poker",
+      "examples": [
+        "{\"action\": \"fold\"}",
+        "{\"action\": \"call\"}",
+        "{\"action\": \"raise\", \"amount\": 100}"
+      ],
+      "id": "texas_holdem_player",
+      "inputModes": null,
+      "name": "Texas Hold'em Player",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "poker",
+        "texas-holdem",
+        "player"
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": null,
+  "url": "http://player1.texas-agent.org/to_agent/98359441b282499ca20c6f6023ade643",
+  "version": "1.0.0"
+}

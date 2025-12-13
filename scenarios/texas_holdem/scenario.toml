@@ -1,0 +1,23 @@
+# Texas Hold'em Poker Scenario
+# Green Agent (Evaluator/Judge) 负责协调扑克游戏并评估结果
+# Purple Agents (Participants) 是参与游戏的玩家
+
+[green_agent]
+endpoint = "http://127.0.0.1:9009"
+cmd = "python ../scenarios/texas_holdem/texas_judge.py --host 127.0.0.1 --port 9009"
+
+[[participants]]
+role = "player_0"
+endpoint = "http://127.0.0.1:9019"
+cmd = "python ../scenarios/texas_holdem/poker_player.py --host 127.0.0.1 --port 9019"
+
+[[participants]]
+role = "player_1"
+endpoint = "http://127.0.0.1:9020"
+cmd = "python ../scenarios/texas_holdem/poker_player.py --host 127.0.0.1 --port 9020"
+
+[config]
+num_hands = 10
+starting_stack = 1000
+small_blind = 10
+big_blind = 20

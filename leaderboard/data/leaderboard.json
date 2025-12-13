@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-10-20T17:56:32.573417",
+  "last_updated": "2025-12-12T19:23:53.660358",
   "sixmax": {
     "agents": {
       "DeepSeek": {
@@ -823,18 +823,20 @@
   "hu": {
     "agents": {
       "DeepSeek": {
-        "composite_rating": 1904.0,
-        "total_hands": 10,
-        "weighted_bb_per_100": 65.0,
-        "win_rate": 1.0,
-        "consistency": 1,
+        "composite_rating": 1759.6,
+        "total_hands": 14,
+        "weighted_bb_per_100": 42.86,
+        "win_rate": 0.5,
+        "consistency": 0.018,
         "technical_quality": 1.0,
-        "behavior_score": 1.0,
-        "runs_count": 1,
+        "behavior_score": 0.95,
+        "runs_count": 2,
         "avg_illegal_rate": 0.0,
         "avg_timeout_rate": 0.0,
         "recent_performance": {
-          "trend": "insufficient_data"
+          "trend": "declining",
+          "recent_bb_avg": 26.25,
+          "recent_runs": 2
         },
         "name": "DeepSeek",
         "runs_data": [
@@ -881,9 +883,55 @@
             "run_name": "gpt5_vs_deepseek",
             "metrics_file": "artifacts/gpt5_vs_deepseek/metrics/metrics.json",
             "mode": "hu"
+          },
+          {
+            "bb_per_100": -12.5,
+            "bb_per_100_ci": [
+              -12.5,
+              -12.5
+            ],
+            "behavior": {
+              "af": 0.0,
+              "decision_time_ms": {
+                "mean": 1805.2,
+                "samples": 10
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.25
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 0,
+                "raises": 0
+              },
+              "vpip": {
+                "count": 1,
+                "rate": 0.25
+              },
+              "wt_sd": {
+                "count": 2,
+                "rate": 1.0
+              }
+            },
+            "hands": 4,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": -1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "total_delta_chips": -50,
+            "run_name": "kimi_vs_deepseek_test",
+            "metrics_file": "artifacts/kimi_vs_deepseek_test/metrics/metrics.json",
+            "mode": "hu"
           }
         ],
-        "rank": 1
+        "rank": 2
       },
       "GPT5": {
         "composite_rating": 1604.0,
@@ -946,18 +994,83 @@
             "mode": "hu"
           }
         ],
-        "rank": 2
+        "rank": 3
+      },
+      "Kimi": {
+        "composite_rating": 1781.1,
+        "total_hands": 4,
+        "weighted_bb_per_100": 12.5,
+        "win_rate": 1.0,
+        "consistency": 1,
+        "technical_quality": 1.0,
+        "behavior_score": 0.9,
+        "runs_count": 1,
+        "avg_illegal_rate": 0.0,
+        "avg_timeout_rate": 0.0,
+        "recent_performance": {
+          "trend": "insufficient_data"
+        },
+        "name": "Kimi",
+        "runs_data": [
+          {
+            "bb_per_100": 12.5,
+            "bb_per_100_ci": [
+              12.5,
+              12.5
+            ],
+            "behavior": {
+              "af": 0.0,
+              "decision_time_ms": {
+                "mean": 4635.923076923077,
+                "samples": 13
+              },
+              "pfr": {
+                "count": 1,
+                "rate": 0.25
+              },
+              "postflop": {
+                "call_penalty_hands": 0,
+                "call_reward_hands": 0,
+                "calls": 0,
+                "raises": 0
+              },
+              "vpip": {
+                "count": 2,
+                "rate": 0.5
+              },
+              "wt_sd": {
+                "count": 3,
+                "rate": 1.0
+              }
+            },
+            "hands": 4,
+            "illegal_actions": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "match_points": 1,
+            "timeouts": {
+              "count": 0,
+              "per_hand": 0.0
+            },
+            "total_delta_chips": 50,
+            "run_name": "kimi_vs_deepseek_test",
+            "metrics_file": "artifacts/kimi_vs_deepseek_test/metrics/metrics.json",
+            "mode": "hu"
+          }
+        ],
+        "rank": 1
       }
     },
     "summary": {
-      "avg_rating": 1754.0,
-      "top_rating": 1904.0,
-      "rating_std": 212.1,
-      "avg_bb_per_100": 0.0,
-      "total_hands_played": 20,
-      "competitive_agents": 1
+      "avg_rating": 1714.9,
+      "top_rating": 1781.1,
+      "rating_std": 96.6,
+      "avg_bb_per_100": -3.21,
+      "total_hands_played": 28,
+      "competitive_agents": 2
     },
-    "total_agents": 2,
-    "total_runs": 2
+    "total_agents": 3,
+    "total_runs": 4
   }
 }

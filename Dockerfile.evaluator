@@ -1,0 +1,41 @@
+# Texas Hold'em Green Agent Evaluator
+# 
+# This Dockerfile builds the green agent for the Texas Hold'em benchmark.
+# It follows the AgentBeats containerization requirements.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY pyproject.toml README.md ./
+COPY green_agent_benchmark/ ./green_agent_benchmark/
+COPY requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -e .
+
+# Install A2A SDK
+RUN pip install --no-cache-dir a2a-sdk uvicorn httpx
+
+# Create artifacts directory
+RUN mkdir -p /app/artifacts
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# Expose the server port
+EXPOSE 8001
+
+# Entrypoint that accepts --host, --port, --card-url arguments
+ENTRYPOINT ["python", "-m", "green_agent_benchmark.a2a.server"]
+
+# Default arguments
+CMD ["--host", "0.0.0.0", "--port", "8001"]
