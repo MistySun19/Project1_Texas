@@ -18,6 +18,17 @@ from .schemas import ActionHistoryEntry, ActionRequest, ActionResponse
 
 STREETS = ("preflop", "flop", "turn", "river")
 
+STOP_ON_AGENT_REASON = "llm_error -> baseline (free check)"
+
+
+class BenchmarkStop(Exception):
+    def __init__(self, *, agent_reason: str, hand_id: str, seat: int, agent_name: str) -> None:
+        self.agent_reason = agent_reason
+        self.hand_id = hand_id
+        self.seat = seat
+        self.agent_name = agent_name
+        super().__init__(f"Stop benchmark: {agent_reason} (hand_id={hand_id} seat={seat} agent={agent_name})")
+
 
 class HandState(enum.Enum):
     INIT = enum.auto()
@@ -597,6 +608,8 @@ class HoldemEngine:
                     "seat": seat,
                     "action": response.action,
                     "amount": response.amount,
+                    "agent_metadata": response.metadata,
+                    "agent_reason": (response.metadata or {}).get("reason") if isinstance(response.metadata, dict) else None,
                     "to_call": to_call,
                     "min_raise_to": min_raise_to,
                     "elapsed_ms": elapsed_ms_int,
@@ -607,6 +620,28 @@ class HoldemEngine:
                     "pot": pot,
                 },
             )
+
+            agent_reason = (
+                (response.metadata or {}).get("reason") if isinstance(response.metadata, dict) else None
+            )
+            if isinstance(agent_reason, str) and agent_reason.startswith(STOP_ON_AGENT_REASON):
+                agent_name = agents[seat].name
+                self.logger.log(
+                    "benchmark_stop",
+                    {
+                        "hand_id": hand_id,
+                        "seat": seat,
+                        "agent": agent_name,
+                        "agent_reason": agent_reason,
+                        "stop_condition": STOP_ON_AGENT_REASON,
+                    },
+                )
+                raise BenchmarkStop(
+                    agent_reason=agent_reason,
+                    hand_id=hand_id,
+                    seat=seat,
+                    agent_name=agent_name,
+                )
 
             if self._all_non_folded_all_in(players):
                 return BettingRoundResult(last_aggressor, aggression_occurred, True), current_bet, last_full_raise, pot

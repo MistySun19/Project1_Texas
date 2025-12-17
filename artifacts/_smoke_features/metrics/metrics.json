@@ -1,0 +1,45 @@
+{
+  "Random": {
+    "bb_per_100": -130.0,
+    "bb_per_100_ci": [
+      -130.0,
+      -130.0
+    ],
+    "behavior": {
+      "af": 7.0,
+      "decision_time_ms": {
+        "mean": 1.0,
+        "samples": 48
+      },
+      "pfr": {
+        "count": 7,
+        "rate": 0.35
+      },
+      "postflop": {
+        "call_penalty_hands": 0,
+        "call_reward_hands": 0,
+        "calls": 0,
+        "raises": 7
+      },
+      "vpip": {
+        "count": 11,
+        "rate": 0.55
+      },
+      "wt_sd": {
+        "count": 4,
+        "rate": 0.3076923076923077
+      }
+    },
+    "hands": 20,
+    "illegal_actions": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "match_points": -1,
+    "timeouts": {
+      "count": 0,
+      "per_hand": 0.0
+    },
+    "total_delta_chips": -2600
+  }
+}

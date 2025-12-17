@@ -1,0 +1,11 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [601, 602, 603, 604, 605, 606, 607, 608, 609, 610]
+hands_per_seed: 50  # per replica
+replicas: 2         # Duplicate-HU A/B seats -> total 1000 hands per opponent
+opponent_mix:
+  kimi-hu: 1.0
+

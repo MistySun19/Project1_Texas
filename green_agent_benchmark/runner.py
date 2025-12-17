@@ -15,6 +15,7 @@ from .agents.base import load_agent as load_custom_agent
 from .config_loader import load_config
 from .engine import (
     AgentInterface,
+    BenchmarkStop,
     EngineConfig,
     HoldemEngine,
     PlayerRuntimeState,
@@ -125,6 +126,8 @@ class RunResult:
     metrics_path: pathlib.Path
     per_hand_metrics_path: pathlib.Path
     metrics: Dict[str, Any]
+    stop_path: Optional[pathlib.Path] = None
+    stop_info: Optional[Dict[str, Any]] = None
 
 # Sentinel label used to mark the CLI-provided agent when constructing 6-max lineups
 CLI_AGENT_SENTINEL = "__CLI_AGENT__"
@@ -161,6 +164,7 @@ class BenchmarkRunner:
         self.output_dir = pathlib.Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.progress_callback = progress_callback
+        self._stop_info: Optional[Dict[str, Any]] = None
         self.engine_config = EngineConfig(
             seat_count=2 if config.mode == "hu" else 6,
             small_blind=config.blinds["sb"],
@@ -170,6 +174,7 @@ class BenchmarkRunner:
         )
 
     def run(self, agent=None) -> RunResult:
+        self._stop_info = None
         agent = self._apply_global_overrides(agent) if agent is not None else None
         runner_name = getattr(agent, "name", "lineup") if agent is not None else "lineup"
         print(f"[BenchmarkRunner] Starting run for {runner_name} in mode {self.config.mode}")
@@ -189,7 +194,14 @@ class BenchmarkRunner:
             self.config.blinds["bb"],
         )
         metrics_path.write_text(json.dumps(metrics, indent=2, sort_keys=True), encoding="utf-8")
-        return RunResult(records, log_paths, metrics_path, per_hand_path, metrics)
+        stop_path: Optional[pathlib.Path] = None
+        if self._stop_info is not None:
+            stop_path = self.output_dir / "metrics" / "stop.json"
+            stop_path.write_text(
+                json.dumps(self._stop_info, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+        return RunResult(records, log_paths, metrics_path, per_hand_path, metrics, stop_path, self._stop_info)
 
     def _run_hu(self, agent) -> Tuple[List[HandRecord], List[pathlib.Path]]:
 
@@ -299,15 +311,31 @@ class BenchmarkRunner:
                         prev_timeouts = {seat_id: players[seat_id].timeouts for seat_id in players}
                         prev_illegal = {seat_id: players[seat_id].illegal_actions for seat_id in players}
 
-                        deltas = engine.play_hand(
-                            seed=seed,
-                            hand_index=hand_index,
-                            replica_id=replica_id,
-                            button_seat=button_seat,
-                            players=players,
-                            agents={agent_seat: agent_iface, opponent_seat: opponent_iface},
-                            deck=deck,
-                        )
+                        try:
+                            deltas = engine.play_hand(
+                                seed=seed,
+                                hand_index=hand_index,
+                                replica_id=replica_id,
+                                button_seat=button_seat,
+                                players=players,
+                                agents={agent_seat: agent_iface, opponent_seat: opponent_iface},
+                                deck=deck,
+                            )
+                        except BenchmarkStop as exc:
+                            self._stop_info = {
+                                "type": "benchmark_stop",
+                                "mode": "hu",
+                                "seed": seed,
+                                "replica": replica_id,
+                                "hand_index": hand_index,
+                                "hand_id": exc.hand_id,
+                                "seat": exc.seat,
+                                "agent": exc.agent_name,
+                                "agent_reason": exc.agent_reason,
+                            }
+                            print(f"[BenchmarkRunner] STOP: {exc}")
+                            self._emit_progress(dict(self._stop_info))
+                            return records, log_paths
 
                         post_timeouts = {seat_id: players[seat_id].timeouts for seat_id in players}
                         post_illegal = {seat_id: players[seat_id].illegal_actions for seat_id in players}
@@ -467,15 +495,31 @@ class BenchmarkRunner:
                         prev_timeouts = {seat: players[seat].timeouts for seat in players}
                         prev_illegal = {seat: players[seat].illegal_actions for seat in players}
 
-                        deltas = engine.play_hand(
-                            seed=seed,
-                            hand_index=hand_index,
-                            replica_id=replica_id,
-                            button_seat=button_seat,
-                            players=players,
-                            agents=interfaces,
-                            deck=deck,
-                        )
+                        try:
+                            deltas = engine.play_hand(
+                                seed=seed,
+                                hand_index=hand_index,
+                                replica_id=replica_id,
+                                button_seat=button_seat,
+                                players=players,
+                                agents=interfaces,
+                                deck=deck,
+                            )
+                        except BenchmarkStop as exc:
+                            self._stop_info = {
+                                "type": "benchmark_stop",
+                                "mode": "sixmax",
+                                "seed": seed,
+                                "replica": replica_id,
+                                "hand_index": hand_index,
+                                "hand_id": exc.hand_id,
+                                "seat": exc.seat,
+                                "agent": exc.agent_name,
+                                "agent_reason": exc.agent_reason,
+                            }
+                            print(f"[BenchmarkRunner] STOP: {exc}")
+                            self._emit_progress(dict(self._stop_info))
+                            return records, log_paths
 
                         post_timeouts = {seat: players[seat].timeouts for seat in players}
                         post_illegal = {seat: players[seat].illegal_actions for seat in players}
@@ -556,27 +600,29 @@ class BenchmarkRunner:
         return assignment[shift:] + assignment[:shift]
 
     def _create_agent_from_spec(self, spec: str):
-        if spec.startswith("baseline:"):
-            base, sep, params = spec.partition("?")
+        base, sep, params = spec.partition("?")
+        kwargs: Dict[str, Any] = {}
+        if sep:
+            from urllib.parse import unquote_plus
+
+            for item in params.split("&"):
+                if not item:
+                    continue
+                key, _, value = item.partition("=")
+                if key:
+                    kwargs[key] = unquote_plus(value)
+
+        display_name = kwargs.pop("name", None)
+        if base.startswith("baseline:"):
             baseline_name = base.split(":", 1)[1]
-            kwargs: Dict[str, Any] = {}
-            if sep:
-                from urllib.parse import unquote_plus
-                for item in params.split("&"):
-                    if not item:
-                        continue
-                    key, _, value = item.partition("=")
-                    if key:
-                        kwargs[key] = unquote_plus(value)
-            display_name = kwargs.pop("name", None)
             agent_obj = make_baseline(baseline_name, **kwargs)
-            if display_name:
-                setattr(agent_obj, "name", display_name)
-            return self._apply_global_overrides(agent_obj)
-        try:
-            agent_obj = make_baseline(spec)
-        except ValueError:
-            agent_obj = load_custom_agent(spec)
+        else:
+            try:
+                agent_obj = make_baseline(base)
+            except ValueError:
+                agent_obj = load_custom_agent(base)
+        if display_name:
+            setattr(agent_obj, "name", display_name)
         return self._apply_global_overrides(agent_obj)
 
     def _emit_progress(self, event: Dict[str, Any]) -> None:

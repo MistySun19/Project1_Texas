@@ -1,0 +1,10 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [401, 402, 403, 404, 405]
+hands_per_seed: 200   # per replica
+replicas: 2           # Duplicate-HU A/B seats -> 200 * 2 * 5 = 2000 hands total
+opponent_mix:
+  deepseek-hu: 1.0
