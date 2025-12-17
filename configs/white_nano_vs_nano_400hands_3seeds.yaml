@@ -1,0 +1,10 @@
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 100
+seeds: [401, 402, 403]
+hands_per_seed: 200  # per replica, so 200 * 2 replicas = 400 hands per seed
+replicas: 2          # Duplicate-HU A/B seats -> rep0 and rep1
+opponent_mix:
+  gpt5-hu: 1.0

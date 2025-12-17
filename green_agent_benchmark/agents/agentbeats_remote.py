@@ -32,7 +32,25 @@ except ImportError:  # pragma: no cover - fallback path injection
     if agentbeats_src.exists():
         sys.path.insert(0, str(agentbeats_src))
 
-from agentbeats.utils.agents import send_message_to_agent  # type: ignore  # noqa: E402
+def _ensure_agentbeats_on_path() -> None:  # pragma: no cover - environment dependent
+    import pathlib
+    import sys
+
+    repo_root = pathlib.Path(__file__).resolve().parents[2]
+    candidates = [
+        repo_root / "agentbeats" / "src",
+        repo_root / "agentbeats-tutorial" / "src",
+    ]
+    for path in candidates:
+        if path.exists() and str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+
+
+try:  # pragma: no cover - optional dependency
+    _ensure_agentbeats_on_path()
+    from agentbeats.utils.agents import send_message_to_agent  # type: ignore  # noqa: E402
+except Exception:  # pragma: no cover
+    send_message_to_agent = None  # type: ignore
 
 
 class AgentBeatsRemoteAgent:
@@ -131,6 +149,14 @@ class AgentBeatsRemoteAgent:
     # --- Internal helpers ----------------------------------------------
 
     def _send(self, payload: Dict[str, Any], silent: bool = False) -> Optional[str]:
+        if send_message_to_agent is None:
+            if not silent:
+                logger.error(
+                    "[AgentBeatsRemote:%s] AgentBeats SDK not available; set PYTHONPATH to include "
+                    "`agentbeats-tutorial/src` or install the SDK.",
+                    self.name,
+                )
+            return None
         message = json.dumps(payload, separators=(",", ":"))
         last_error: Optional[Exception] = None
         for attempt in range(self.retries + 1):

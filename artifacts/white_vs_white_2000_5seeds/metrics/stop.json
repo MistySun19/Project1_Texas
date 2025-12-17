@@ -1,0 +1,11 @@
+{
+  "agent": "white-agent",
+  "agent_reason": "llm_error -> baseline (free check)",
+  "hand_id": "404-188-0",
+  "hand_index": 188,
+  "mode": "hu",
+  "replica": 0,
+  "seat": 0,
+  "seed": 404,
+  "type": "benchmark_stop"
+}

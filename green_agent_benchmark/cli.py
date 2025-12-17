@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import logging
 import pathlib
 import sys
 from typing import Any
@@ -33,6 +35,11 @@ def parse_args() -> argparse.Namespace:
         required=False,
         help="Override agent display name",
     )
+    parser.add_argument(
+        "--log-level",
+        default="WARNING",
+        help="Python logging level (e.g. INFO, WARNING). Use INFO to see per-decision traces.",
+    )
     return parser.parse_args()
 
 
@@ -46,6 +53,12 @@ def load_agent(spec: str) -> Any:
 def main() -> None:
     load_env()
     args = parse_args()
+    logging.basicConfig(level=getattr(logging, str(args.log_level).upper(), logging.WARNING))
+    # The `openai` Python SDK is used as an HTTP client for multiple providers
+    # (OpenAI/DeepSeek/Kimi/etc.). Its INFO logs can be noisy for beginners, so
+    # keep them at WARNING.
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("openai._base_client").setLevel(logging.WARNING)
     config = SeriesConfig.from_file(args.config)
 
     if config.lineup:
@@ -63,6 +76,10 @@ def main() -> None:
     output_dir = pathlib.Path(args.output)
     runner = BenchmarkRunner(config, output_dir)
     result = runner.run(agent)
+
+    if result.stop_info:
+        print("=== Run Stopped Early ===")
+        print(json.dumps(result.stop_info, indent=2, sort_keys=True))
 
     metrics = result.metrics
     print("=== Green Agent Benchmark Summary ===")
