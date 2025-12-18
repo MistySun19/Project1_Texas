@@ -1,0 +1,620 @@
+# Green Agent Benchmark - Developer Guide
+
+This guide is for contributors and developers extending the Green Agent Benchmark codebase.
+
+---
+
+## 📖 Table of Contents
+
+1. [Development Setup](#development-setup)
+2. [Code Structure](#code-structure)
+3. [Adding New Agents](#adding-new-agents)
+4. [Adding New Metrics](#adding-new-metrics)
+5. [Testing Guidelines](#testing-guidelines)
+6. [Contributing Workflow](#contributing-workflow)
+7. [Performance Optimization](#performance-optimization)
+8. [Common Patterns](#common-patterns)
+
+---
+
+## 🛠️ Development Setup
+
+### Prerequisites
+
+- Python 3.10+
+- Poetry (recommended) or pip
+- Git
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-org/green-agent-benchmark.git
+   cd green-agent-benchmark
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   # With Poetry (recommended)
+   poetry install
+   
+   # With pip
+   python -m pip install -r requirements.txt
+   python -m pip install -e .
+   ```
+
+3. **Set up pre-commit hooks** (optional but recommended):
+   ```bash
+   pre-commit install
+   ```
+
+4. **Run smoke test**:
+   ```bash
+   python -m green_agent_benchmark.cli \
+       --config configs/demo_hu_10hands.yaml \
+       --agent baseline:random-hu \
+       --output artifacts/dev_test
+   ```
+
+### Development Tools
+
+- **Linting**: `flake8`, `black`, `isort`
+- **Type checking**: `mypy`
+- **Testing**: `pytest`
+- **Documentation**: Markdown with VSCode/PyCharm
+
+---
+
+## 📁 Code Structure
+
+### High-Level Architecture
+
+```
+green_agent_benchmark/
+├── __init__.py
+├── cli.py                 # CLI entry point
+├── runner.py              # Experiment orchestration
+├── engine.py              # Texas Hold'em game engine
+├── cards.py               # Card evaluation logic
+├── metrics.py             # Statistical analysis
+├── config_loader.py       # YAML config parsing
+├── env_loader.py          # Environment variable handling
+├── logging_utils.py       # NDJSON logging
+├── schemas.py             # Data classes (ActionRequest, etc.)
+├── baseline_registry.py   # Baseline agent factory
+├── agents/                # Agent implementations
+│   ├── base.py            # AgentProtocol interface
+│   ├── random_agent.py    # Random baseline
+│   ├── tag_agent.py       # TAG baseline
+│   ├── openai_compatible.py  # Base LLM agent
+│   ├── gpt5_agent.py      # GPT-5 agent
+│   ├── deepseek_agent.py  # DeepSeek agent
+│   ├── gemini_agent.py    # Gemini agent
+│   └── agentbeats_remote.py  # AgentBeats proxy
+├── agentbeats/            # AgentBeats integration
+│   ├── agent_server.py    # Green agent server
+│   ├── launcher.py        # Process supervisor
+│   └── player_server.py   # Participant server
+└── a2a/                   # Agent-to-Agent protocol (future)
+```
+
+### Key Modules
+
+#### `engine.py`
+- `HoldemEngine`: Main game loop (hand execution, betting rounds, showdown)
+- `EngineConfig`: Configuration (blinds, stacks, timeouts)
+- `PlayerRuntimeState`: Per-player state tracking
+- `AgentInterface`: Wrapper unifying all agents
+
+#### `runner.py`
+- `BenchmarkRunner`: Batch experiment coordinator
+- `SeriesConfig`: Experiment configuration
+- `HandRecord`: Per-hand results
+
+#### `agents/base.py`
+- `AgentProtocol`: Interface all agents must implement
+  ```python
+  class AgentProtocol:
+      name: str
+      def reset(seat_id: int, table_config: dict) -> None
+      def act(request: ActionRequest) -> ActionResponse
+  ```
+
+#### `metrics.py`
+- `aggregate_run_metrics()`: Compute bb/100, CI, match points
+- `_parse_behavior_from_logs()`: Extract VPIP/PFR/AF from logs
+- `_aggregate_player_metrics()`: Per-player statistics
+
+---
+
+## 🤖 Adding New Agents
+
+### Baseline Agents (Rule-Based)
+
+1. **Create agent file** in `green_agent_benchmark/agents/`:
+
+```python
+# green_agent_benchmark/agents/my_agent.py
+from green_agent_benchmark.agents.base import AgentProtocol
+from green_agent_benchmark.schemas import ActionRequest, ActionResponse
+
+class MyAgent(AgentProtocol):
+    name = "my-agent"
+    
+    def reset(self, seat_id: int, table_config: dict) -> None:
+        """Called at start of each seed."""
+        self.seat_id = seat_id
+        self.hands_played = 0
+    
+    def act(self, request: ActionRequest) -> ActionResponse:
+        """Make poker decision."""
+        self.hands_played += 1
+        
+        # Example strategy: always call if < 10bb, else fold
+        if request.to_call < request.blinds["bb"] * 10:
+            action = "call"
+            amount = None
+        else:
+            action = "fold"
+            amount = None
+        
+        return ActionResponse(
+            action=action,
+            amount=amount,
+            wait_time_ms=0,
+            metadata={"hands_played": self.hands_played}
+        )
+```
+
+2. **Register in baseline registry** (optional):
+
+```python
+# green_agent_benchmark/baseline_registry.py
+
+def create_my_agent():
+    from green_agent_benchmark.agents.my_agent import MyAgent
+    return MyAgent()
+
+BASELINE_AGENTS = {
+    # ... existing agents ...
+    "my-agent": create_my_agent,
+}
+```
+
+3. **Use in CLI**:
+```bash
+# Via registry
+python -m green_agent_benchmark.cli \
+    --config configs/demo_hu_10hands.yaml \
+    --agent baseline:my-agent
+
+# Via module path
+python -m green_agent_benchmark.cli \
+    --config configs/demo_hu_10hands.yaml \
+    --agent green_agent_benchmark.agents.my_agent:MyAgent
+```
+
+### LLM Agents
+
+Inherit from `OpenAICompatibleAgent`:
+
+```python
+# green_agent_benchmark/agents/my_llm_agent.py
+from green_agent_benchmark.agents.openai_compatible import OpenAICompatibleAgent
+
+class MyLLMAgent(OpenAICompatibleAgent):
+    name = "my-llm-agent"
+    
+    def __init__(self):
+        super().__init__(
+            api_key=os.getenv("MY_API_KEY"),
+            base_url="https://api.my-provider.com/v1",
+            model_name="my-model-name",
+            system_prompt="You are a professional poker player. Follow optimal GTO strategy.",
+            temperature=0.7,
+            max_tokens=500
+        )
+```
+
+**Key methods to override** (optional):
+- `_build_user_message(request)`: Customize prompt structure
+- `_parse_llm_response(content)`: Custom response parsing
+- `_handle_error(error)`: Custom error handling
+
+### Agent Testing Checklist
+
+- [ ] Implements `AgentProtocol` interface
+- [ ] `reset()` initializes state correctly
+- [ ] `act()` returns valid `ActionResponse`
+- [ ] Handles all `legal_actions` correctly
+- [ ] Respects `min_raise_to` and stack constraints
+- [ ] Gracefully handles timeouts and errors
+- [ ] Logs meaningful metadata
+- [ ] Works in both heads-up and 6-max modes
+
+---
+
+## 📊 Adding New Metrics
+
+### Behavior Metrics (from Logs)
+
+1. **Add event extraction** in `metrics.py`:
+
+```python
+def _parse_behavior_from_logs(log_path: Path) -> dict:
+    # Existing code...
+    
+    # Add new metric tracking
+    three_bet_count = 0
+    three_bet_opportunities = 0
+    
+    for line in log_path.read_text().split("\n"):
+        if not line.strip():
+            continue
+        event = json.loads(line)
+        
+        # Track 3-bet frequency
+        if event["type"] == "action":
+            action_history = event["payload"]["action_history"]
+            if len(action_history) >= 2 and action_history[-1]["action"] == "raise":
+                if action_history[-2]["action"] == "raise":
+                    three_bet_count += 1
+            if len(action_history) >= 1 and action_history[-1]["action"] == "raise":
+                three_bet_opportunities += 1
+    
+    # Compute 3-bet%
+    three_bet_pct = (three_bet_count / three_bet_opportunities * 100) if three_bet_opportunities > 0 else 0.0
+    
+    return {
+        # ... existing metrics ...
+        "3bet_pct": round(three_bet_pct, 2)
+    }
+```
+
+2. **Add to output schema**:
+
+```python
+def _aggregate_player_metrics(hand_records, player_name, behavior_stats):
+    return {
+        # ... existing fields ...
+        "behavior": {
+            # ... existing behavior ...
+            "3bet_pct": behavior_stats.get("3bet_pct", 0.0)
+        }
+    }
+```
+
+3. **Update leaderboard** (if needed):
+
+```python
+# leaderboard/leaderboard_generator.py
+def render_agent_card(agent):
+    return f"""
+    <div class="metric">
+        <span class="metric-label">3-Bet%</span>
+        <span class="metric-value">{agent.get('3bet_pct', 0.0):.2f}%</span>
+    </div>
+    """
+```
+
+### Hand-Level Metrics
+
+1. **Extend `HandRecord`** in `schemas.py`:
+
+```python
+@dataclass
+class HandRecord:
+    # ... existing fields ...
+    showdown_equity: Optional[float] = None  # New field
+```
+
+2. **Compute in `engine.py`**:
+
+```python
+def showdown(self):
+    # ... existing showdown logic ...
+    
+    # Compute equity realization
+    for player in winners:
+        equity = calculate_equity(player.hole_cards, self.board, opponents)
+        hand_record.showdown_equity = equity
+```
+
+3. **Aggregate in `metrics.py`**:
+
+```python
+def _aggregate_player_metrics(hand_records, player_name, behavior_stats):
+    showdown_equities = [r.showdown_equity for r in hand_records if r.showdown_equity]
+    avg_equity_realization = sum(showdown_equities) / len(showdown_equities) if showdown_equities else 0.0
+    
+    return {
+        # ... existing fields ...
+        "avg_equity_realization": round(avg_equity_realization, 4)
+    }
+```
+
+---
+
+## 🧪 Testing Guidelines
+
+### Unit Tests
+
+```python
+# tests/test_engine.py
+import pytest
+from green_agent_benchmark.engine import HoldemEngine
+from green_agent_benchmark.agents.random_agent import RandomAgent
+
+def test_hand_execution():
+    """Test basic hand execution."""
+    engine = HoldemEngine(
+        agent_specs=[("baseline:random-hu", 0), ("baseline:random-hu", 1)],
+        blinds={"sb": 50, "bb": 100},
+        stacks={0: 10000, 1: 10000},
+        timeout_seconds=60
+    )
+    
+    hand_record = engine.play_hand(hand_index=0, seed=101)
+    
+    assert hand_record.hand_id == "101-0"
+    assert abs(hand_record.delta[0] + hand_record.delta[1]) < 0.01  # Conservation of chips
+    assert hand_record.winner in [0, 1, "split"]
+```
+
+```python
+# tests/test_metrics.py
+def test_bb100_calculation():
+    """Test bb/100 calculation."""
+    from green_agent_benchmark.metrics import aggregate_run_metrics
+    
+    hand_records = [
+        HandRecord(delta={0: 100, 1: -100}, ...),
+        HandRecord(delta={0: -50, 1: 50}, ...),
+        HandRecord(delta={0: 200, 1: -200}, ...)
+    ]
+    
+    metrics = aggregate_run_metrics(hand_records, blinds={"bb": 100})
+    
+    assert metrics["agents"][0]["bb100"] == pytest.approx((100-50+200) / 100 / 3 * 100, rel=0.01)
+```
+
+### Integration Tests
+
+```bash
+# Run full experiment with small config
+python -m green_agent_benchmark.cli \
+    --config configs/demo_hu_10hands.yaml \
+    --agent baseline:random-hu \
+    --output artifacts/integration_test
+
+# Verify output structure
+ls artifacts/integration_test/logs/
+ls artifacts/integration_test/metrics/
+cat artifacts/integration_test/metrics.json
+```
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# Specific test file
+pytest tests/test_engine.py
+
+# With coverage
+pytest --cov=green_agent_benchmark --cov-report=html
+
+# Verbose output
+pytest -v -s
+```
+
+---
+
+## 🤝 Contributing Workflow
+
+### Standard Process
+
+1. **Fork and clone**:
+   ```bash
+   git clone https://github.com/your-username/green-agent-benchmark.git
+   cd green-agent-benchmark
+   git remote add upstream https://github.com/original-org/green-agent-benchmark.git
+   ```
+
+2. **Create feature branch**:
+   ```bash
+   git checkout -b feature/my-new-feature
+   ```
+
+3. **Make changes** and test:
+   ```bash
+   # Code your feature
+   # Run tests
+   pytest
+   
+   # Check linting
+   black green_agent_benchmark/ tests/
+   flake8 green_agent_benchmark/
+   ```
+
+4. **Commit and push**:
+   ```bash
+   git add .
+   git commit -m "Add new feature: detailed description"
+   git push origin feature/my-new-feature
+   ```
+
+5. **Create pull request** on GitHub
+
+### Code Style
+
+- **Formatting**: Use `black` (line length 100)
+- **Imports**: Use `isort` for import ordering
+- **Type hints**: Use type annotations for public APIs
+- **Docstrings**: Google-style docstrings for public methods
+
+```python
+def compute_metric(hands: List[HandRecord], blinds: dict) -> float:
+    """Compute aggregate metric from hand records.
+    
+    Args:
+        hands: List of hand records with delta information.
+        blinds: Dictionary with 'sb' and 'bb' values.
+    
+    Returns:
+        Computed metric value in bb/100 format.
+    
+    Raises:
+        ValueError: If hands list is empty.
+    """
+    if not hands:
+        raise ValueError("Cannot compute metric from empty hands")
+    # ... implementation
+```
+
+### Pull Request Checklist
+
+- [ ] Tests pass (`pytest`)
+- [ ] Code formatted (`black`, `isort`)
+- [ ] Type hints added for new functions
+- [ ] Docstrings added for public APIs
+- [ ] Integration test added if applicable
+- [ ] Documentation updated (`docs/`, `README.md`)
+- [ ] Changelog entry added
+
+---
+
+## ⚡ Performance Optimization
+
+### Profiling
+
+```python
+import cProfile
+import pstats
+
+# Profile experiment run
+cProfile.run(
+    'runner.run()',
+    'profile_stats'
+)
+
+# Analyze results
+p = pstats.Stats('profile_stats')
+p.sort_stats('cumulative')
+p.print_stats(20)
+```
+
+### Common Bottlenecks
+
+1. **LLM API latency**: Use async/concurrent requests
+   ```python
+   import asyncio
+   async def batch_act(requests):
+       tasks = [agent.act_async(req) for req in requests]
+       return await asyncio.gather(*tasks)
+   ```
+
+2. **Log I/O**: Buffer writes, flush periodically
+   ```python
+   class BufferedLogger:
+       def __init__(self, path, buffer_size=1000):
+           self.buffer = []
+           self.buffer_size = buffer_size
+           
+       def log(self, event):
+           self.buffer.append(event)
+           if len(self.buffer) >= self.buffer_size:
+               self.flush()
+   ```
+
+3. **Metrics computation**: Cache intermediate results
+   ```python
+   @functools.lru_cache(maxsize=128)
+   def compute_expensive_metric(hand_id: str):
+       # ... expensive computation
+   ```
+
+### Parallelization
+
+Run multiple seeds in parallel:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+def run_seed(seed):
+    return runner.run_single_seed(seed)
+
+with ProcessPoolExecutor(max_workers=4) as executor:
+    results = list(executor.map(run_seed, seeds))
+```
+
+---
+
+## 🎨 Common Patterns
+
+### Safe LLM Response Parsing
+
+```python
+def _parse_llm_response(self, content: str) -> dict:
+    try:
+        # Try JSON parsing
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # Fallback to regex extraction
+        match = re.search(r'"action"\s*:\s*"(\w+)"', content)
+        if match:
+            action = match.group(1)
+            # Extract amount if raise_to
+            amount_match = re.search(r'"amount"\s*:\s*(\d+)', content)
+            return {
+                "action": action,
+                "amount": int(amount_match.group(1)) if amount_match else None
+            }
+        # Ultimate fallback
+        return {"action": "check"}
+```
+
+### Deterministic RNG
+
+```python
+import random
+
+def build_deck_from_seed(seed: int, hand_index: int, replica_id: int):
+    """Deterministic deck shuffling."""
+    rng = random.Random(f"{seed}-{hand_index}-{replica_id}")
+    deck = list(range(52))
+    rng.shuffle(deck)
+    return deck, f"seed={seed} hand={hand_index} replica={replica_id}"
+```
+
+### Event Logging
+
+```python
+class NDJSONLogger:
+    def __init__(self, log_path: Path):
+        self.log_path = log_path
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self.file = open(log_path, "a")
+    
+    def log(self, event: dict):
+        event["timestamp"] = datetime.now().isoformat()
+        self.file.write(json.dumps(event) + "\n")
+        self.file.flush()
+    
+    def close(self):
+        self.file.close()
+```
+
+---
+
+## 📚 Additional Resources
+
+- [README.md](../README.md): Complete usage guide and quick start
+- [ARCHITECTURE.md](ARCHITECTURE.md): System architecture deep dive
+- [API_REFERENCE.md](../API_REFERENCE.md): Full API documentation
+- [AGENTBEATS.md](AGENTBEATS.md): Platform integration guide
+
+---
+
+**Maintained by the Green Agent Benchmark development team. Contributions welcome!**
