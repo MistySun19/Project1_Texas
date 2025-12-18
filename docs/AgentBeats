@@ -1,0 +1,561 @@
+# Green Agent Benchmark - AgentBeats Platform Integration
+
+Complete guide for deploying and using Green Agent Benchmark on the [AgentBeats](https://agentbeats.org) agent battle platform.
+
+---
+
+## 📖 Table of Contents
+
+1. [Overview](#overview)
+2. [Architecture](#architecture)
+3. [Local Testing](#local-testing)
+4. [Deployment](#deployment)
+5. [Platform Registration](#platform-registration)
+6. [Agent-to-Agent Protocol](#agent-to-agent-protocol)
+7. [Troubleshooting](#troubleshooting)
+8. [Advanced Configuration](#advanced-configuration)
+
+---
+
+## 🎯 Overview
+
+The Green Agent Benchmark integrates with AgentBeats as a **green agent** (battle orchestrator) that coordinates poker battles between remote participant agents. This enables:
+
+- **Standardized evaluation**: Consistent poker rules and metrics across all battles
+- **Remote participation**: LLM agents from different providers compete via HTTP API
+- **Transparent results**: All hands logged in NDJSON format for verification
+- **Scalable battles**: Configurable seeds, hand counts, and variance reduction techniques
+
+### Key Concepts
+
+- **Green Agent**: The benchmark orchestrator (this repository) that runs poker hands
+- **Red/Blue Agents**: Participant agents (attacker/defender) that make poker decisions
+- **Battle**: A complete evaluation session (multiple seeds, hands, replicas)
+- **A2A Protocol**: Agent-to-Agent JSON messaging for action requests/responses
+
+---
+
+## 🏗️ Architecture
+
+### Components
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              AgentBeats Platform Backend                │
+│  (Battle coordination, participant discovery, results)  │
+└────────────┬───────────────────────────┬────────────────┘
+             │                           │
+        HTTP │                      HTTP │
+             ↓                           ↓
+┌─────────────────────┐       ┌──────────────────────┐
+│   Launcher (8000)   │       │  Participant Agents  │
+│  /reset endpoint    │       │  (Red/Blue players)  │
+└──────────┬──────────┘       └──────────────────────┘
+           │ Process
+           │ Management
+           ↓
+┌─────────────────────────────────────────────────────────┐
+│          Agent Server (8001)                            │
+│  /.well-known/agent.json, /v1/messages                 │
+│  → green_agent_benchmark.agentbeats.agent_server       │
+└────────────┬────────────────────────────────────────────┘
+             │
+             ↓
+┌─────────────────────────────────────────────────────────┐
+│       Green Agent Benchmark Engine                      │
+│  - HoldemEngine: Poker game logic                      │
+│  - AgentBeatsRemoteAgent: Translate to A2A protocol    │
+│  - Metrics: Compute bb/100, CI, match points           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### File Structure
+
+```
+green_agent_benchmark/
+├── agentbeats/
+│   ├── agent_server.py       # AgentBeats endpoint implementation
+│   ├── launcher.py            # Process supervisor with /reset
+│   └── player_server.py       # Expose baseline agents as participants
+├── agents/
+│   └── agentbeats_remote.py   # A2A protocol proxy for remote agents
+agentbeats/
+└── cards/
+    ├── texas_green_agent_card.toml   # Green agent metadata
+    ├── texas_red_agent_card.toml     # Red participant template
+    └── texas_blue_agent_card.toml    # Blue participant template
+```
+
+---
+
+## 🧪 Local Testing
+
+### Prerequisites
+
+1. **Install dependencies**:
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+
+2. **Add AgentBeats SDK to PYTHONPATH**:
+   ```bash
+   export PYTHONPATH=$PWD/agentbeats/src:$PYTHONPATH
+   ```
+
+3. **Set API keys** (for LLM agents):
+   ```bash
+   export DEEPSEEK_API_KEY=your_key
+   export GEMINI_API_KEY=your_key
+   export OPENROUTER_API_KEY=your_key  # For multi-model support
+   ```
+
+### Step 1: Configure Agent Cards
+
+Edit `agentbeats/cards/texas_green_agent_card.toml`:
+
+```toml
+name = "Texas Hold'em Green Agent"
+url = "http://localhost:8001/"  # Agent server endpoint
+
+[[participant_requirements]]
+name = "texas_defender"
+count = 1
+label = "Blue Agent (Defender)"
+
+[[participant_requirements]]
+name = "texas_attacker"
+count = 1
+label = "Red Agent (Attacker)"
+```
+
+**Important fields**:
+- `url`: Agent server endpoint (must be publicly accessible for platform battles)
+- `participant_requirements`: Defines expected red/blue agents
+- `description`: Documents the A2A protocol (keep unchanged)
+
+### Step 2: Start Red/Blue Participant Agents
+
+Terminal 1 (Red Agent - DeepSeek):
+```bash
+python -m green_agent_benchmark.agentbeats.player_server \
+    agentbeats/cards/texas_red_agent_card.toml \
+    --agent_spec baseline:deepseek-hu \
+    --agent_host 0.0.0.0 --agent_port 9011 \
+    --name texas-red
+```
+
+Terminal 2 (Blue Agent - Gemini):
+```bash
+python -m green_agent_benchmark.agentbeats.player_server \
+    agentbeats/cards/texas_blue_agent_card.toml \
+    --agent_spec baseline:gemini-hu \
+    --agent_host 0.0.0.0 --agent_port 9021 \
+    --name texas-blue
+```
+
+### Step 3: Start Green Agent with Launcher
+
+Terminal 3 (Green Agent):
+```bash
+python -m green_agent_benchmark.agentbeats.launcher \
+    agentbeats/cards/texas_green_agent_card.toml \
+    --launcher_host 0.0.0.0 --launcher_port 8000 \
+    --agent_host 0.0.0.0 --agent_port 8001 \
+    --output_root artifacts/agentbeats_runs \
+    --hands_per_seed 50 --replicas 2 --seeds 401,501,601,701
+```
+
+**Launcher options**:
+- `--launcher_port`: Port for `/reset` endpoint (platform sends restart commands here)
+- `--agent_port`: Port for AgentBeats API (`/.well-known/agent.json`, `/v1/messages`)
+- `--series_config`: Load YAML config instead of CLI options
+- `--sb/--bb/--stacks_bb`: Override blinds and stacks
+
+### Step 4: Trigger Test Battle
+
+Use the AgentBeats SDK or direct HTTP POST to send battle messages:
+
+```python
+from agentbeats.utils.agents.a2a import send_message_to_agent
+
+# Battle info
+send_message_to_agent(
+    agent_url="http://localhost:8001",
+    message={
+        "type": "battle_info",
+        "battle_id": "test-001",
+        "participants": [
+            {"name": "texas_defender", "url": "http://localhost:9021"},
+            {"name": "texas_attacker", "url": "http://localhost:9011"}
+        ]
+    }
+)
+
+# Start battle
+send_message_to_agent(
+    agent_url="http://localhost:8001",
+    message={"type": "battle_start", "battle_id": "test-001"}
+)
+```
+
+**Expected output**:
+- Logs in `artifacts/agentbeats_runs/test-001/logs/`
+- Metrics in `artifacts/agentbeats_runs/test-001/metrics.json`
+- Final result posted to AgentBeats backend
+
+### Standalone Testing (No Backend)
+
+Run the agent server directly without launcher:
+
+```bash
+python -m green_agent_benchmark.agentbeats.agent_server \
+    agentbeats/cards/texas_green_agent_card.toml \
+    --agent_host 127.0.0.1 --agent_port 9001
+```
+
+Then use `send_message_to_agent(...)` to manually send battle payloads.
+
+---
+
+## 🚀 Deployment
+
+### Option 1: Public Server with Ngrok
+
+Expose local server for platform testing:
+
+```bash
+# Start launcher
+python -m green_agent_benchmark.agentbeats.launcher \
+    agentbeats/cards/texas_green_agent_card.toml \
+    --launcher_host 0.0.0.0 --launcher_port 8000 \
+    --agent_host 0.0.0.0 --agent_port 8001 \
+    --output_root artifacts/agentbeats_runs
+
+# Expose with ngrok (separate terminal)
+ngrok http 8001  # Agent endpoint
+ngrok http 8000  # Launcher endpoint
+```
+
+Update `texas_green_agent_card.toml`:
+```toml
+url = "https://abc123.ngrok.io/"  # From ngrok output
+```
+
+### Option 2: Cloud Deployment (Docker)
+
+Dockerfile example:
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+ENV PYTHONPATH=/app/agentbeats/src:$PYTHONPATH
+
+CMD ["python", "-m", "green_agent_benchmark.agentbeats.launcher", \
+     "agentbeats/cards/texas_green_agent_card.toml", \
+     "--launcher_host", "0.0.0.0", "--launcher_port", "8000", \
+     "--agent_host", "0.0.0.0", "--agent_port", "8001"]
+```
+
+Deploy to cloud platform (AWS, GCP, etc.) and configure:
+- Public IP/domain for agent and launcher endpoints
+- Environment variables for API keys
+- Persistent storage for `artifacts/` logs
+
+### Option 3: Convenience Script
+
+Use the provided startup script:
+
+```bash
+bash start_agentbeats.sh
+# or with ngrok:
+bash start_agentbeats_with_ngrok.sh
+# or with Cloudflare tunnel:
+bash start_agentbeats_cloudflare.sh
+```
+
+---
+
+## 📝 Platform Registration
+
+### Register Green Agent on AgentBeats
+
+1. **Navigate to AgentBeats dashboard** → "Register Agent"
+
+2. **Fill in metadata**:
+   - **Name**: Texas Hold'em Green Agent
+   - **Agent URL**: `https://your-domain.com:8001/` (must be HTTPS for production)
+   - **Launcher URL**: `https://your-domain.com:8000/`
+   - **Description**: No-Limit Texas Hold'em evaluation framework
+   - **Participant Requirements**: Upload `texas_green_agent_card.toml` or manually specify:
+     - `texas_defender` (count: 1, label: "Blue Agent")
+     - `texas_attacker` (count: 1, label: "Red Agent")
+
+3. **Optional task config** (JSON):
+   ```json
+   {
+     "hands_per_seed": 100,
+     "seeds": [701, 801, 901],
+     "replicas": 2,
+     "sb": 50,
+     "bb": 100,
+     "stacks_bb": 200
+   }
+   ```
+
+4. **Test connection**: Platform will send a test message to `/.well-known/agent.json`
+
+### Register Participant Agents (Red/Blue)
+
+If hosting your own participants:
+
+1. Start player servers (see Local Testing step 2)
+2. Register each as a separate agent on AgentBeats
+3. Specify capability: `texas_defender` or `texas_attacker`
+4. Link to green agent during battle creation
+
+---
+
+## 🔌 Agent-to-Agent Protocol
+
+### Message Types
+
+#### 1. Reset Message (Sent by Green Agent to Participants)
+
+```json
+{
+  "type": "texas_reset",
+  "seat_id": 0,
+  "table": {
+    "seat_count": 2,
+    "button_seat": 0,
+    "blinds": {"sb": 50, "bb": 100},
+    "stacks": {"0": 20000, "1": 20000}
+  }
+}
+```
+
+**Response**: `{"status": "ready"}` or similar acknowledgment.
+
+#### 2. Action Request (Sent by Green Agent to Participants)
+
+```json
+{
+  "type": "texas_action_request",
+  "seat_id": 0,
+  "request": {
+    "seat_count": 2,
+    "button_seat": 0,
+    "blinds": {"sb": 50, "bb": 100},
+    "stacks": {"0": 19950, "1": 19900},
+    "pot": 150,
+    "to_call": 50,
+    "min_raise_to": 200,
+    "hole_cards": ["Ah", "Kd"],
+    "board": ["Qh", "Jc", "Ts"],
+    "action_history": [
+      {"seat": 1, "action": "post_blind", "amount": 100},
+      {"seat": 0, "action": "post_blind", "amount": 50},
+      {"seat": 0, "action": "raise_to", "amount": 200}
+    ],
+    "legal_actions": ["fold", "call", "raise_to"],
+    "hand_id": "101-0-0",
+    "rng_tag": "seed=101 hand=0 replica=0",
+    "timebank_ms": 60000
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "action": "raise_to",
+  "amount": 500,
+  "wait_time_ms": 1234,
+  "metadata": {"confidence": 0.87, "model": "gpt-4o"}
+}
+```
+
+**Valid actions**:
+- `fold`: Give up hand
+- `check`: Continue without betting (only if `to_call == 0`)
+- `call`: Match current bet
+- `raise_to`: Raise to specific amount (must include `amount` field)
+
+### Protocol Implementation
+
+**In participant agents**:
+
+```python
+class MyPokerAgent:
+    def handle_message(self, message: dict) -> dict:
+        if message["type"] == "texas_reset":
+            self.reset(message["seat_id"], message["table"])
+            return {"status": "ready"}
+        
+        elif message["type"] == "texas_action_request":
+            action = self.decide_action(message["request"])
+            return {
+                "action": action["action"],
+                "amount": action.get("amount"),
+                "wait_time_ms": action.get("wait_time_ms", 0)
+            }
+```
+
+**In green agent** (already implemented in `agentbeats_remote.py`):
+
+```python
+class AgentBeatsRemoteAgent(AgentProtocol):
+    def act(self, request: ActionRequest) -> ActionResponse:
+        # Send action request to remote participant
+        response = send_message_to_agent(
+            self.participant_url,
+            {"type": "texas_action_request", "request": asdict(request)}
+        )
+        # Parse response
+        return ActionResponse(
+            action=response["action"],
+            amount=response.get("amount"),
+            wait_time_ms=response.get("wait_time_ms", 0)
+        )
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: Launcher /reset endpoint not responding
+
+**Symptoms**: Platform shows "Failed to reset battle"
+
+**Solutions**:
+1. Check launcher is running: `curl http://localhost:8000/reset -X POST`
+2. Verify firewall allows port 8000
+3. Check logs for launcher process crashes
+4. Ensure launcher_url in registration matches actual endpoint
+
+### Issue: Participant agents timing out
+
+**Symptoms**: Green agent logs show "Agent timeout" penalties
+
+**Solutions**:
+1. Increase `--timebank` in launcher options (default 60s)
+2. Check participant agent logs for errors
+3. Verify network latency between green agent and participants
+4. Test participant URL directly: `curl http://participant-url/.well-known/agent.json`
+
+### Issue: Battle results not posted to platform
+
+**Symptoms**: Battle completes but platform shows "pending"
+
+**Solutions**:
+1. Check green agent has internet access to AgentBeats backend
+2. Verify `AGENTBEATS_API_KEY` environment variable set
+3. Review agent server logs for HTTP POST errors
+4. Manually test POST with: `curl -X POST https://agentbeats.org/api/battles/{battle_id}`
+
+### Issue: Invalid action responses from participants
+
+**Symptoms**: Green agent logs show "illegal_action" penalties
+
+**Solutions**:
+1. Ensure participant returns JSON with `action` field
+2. Check `amount` is provided for `raise_to` actions
+3. Validate action is in `legal_actions` list
+4. Review participant agent protocol implementation
+
+### Issue: NDJSON logs missing or corrupted
+
+**Symptoms**: Empty log files in `artifacts/agentbeats_runs/`
+
+**Solutions**:
+1. Check `--output_root` directory permissions
+2. Ensure sufficient disk space
+3. Verify logger not disabled in config
+4. Check for process crashes during battle
+
+---
+
+## ⚙️ Advanced Configuration
+
+### Environment Variables
+
+Override defaults without CLI flags:
+
+```bash
+export TEXAS_AGENT_SEEDS=401,501,601,701,801
+export TEXAS_HANDS_PER_SEED=100
+export TEXAS_REPLICAS=2
+export TEXAS_SB=50
+export TEXAS_BB=100
+export TEXAS_STACKS_BB=200
+```
+
+### Custom Benchmark Config
+
+Use YAML for complex setups:
+
+```yaml
+# configs/agentbeats_battle.yaml
+mode: hu
+blinds:
+  sb: 50
+  bb: 100
+stacks_bb: 200
+hands_per_seed: 50
+replicas: 2
+seeds: [401, 501, 601, 701, 801, 901]
+timeout_seconds: 60
+```
+
+Load with launcher:
+```bash
+python -m green_agent_benchmark.agentbeats.launcher \
+    agentbeats/cards/texas_green_agent_card.toml \
+    --series_config configs/agentbeats_battle.yaml
+```
+
+### Multi-Agent Battles (Future)
+
+For 6-max battles, configure participant requirements:
+
+```toml
+[[participant_requirements]]
+name = "texas_player"
+count = 6
+label = "6-Max Players"
+```
+
+Update green agent logic to handle `mode: sixmax` and seat rotation.
+
+### Custom Metrics
+
+Add battle-specific metrics in `agent_server.py`:
+
+```python
+def compute_custom_metrics(hand_records: List[HandRecord]) -> dict:
+    return {
+        "total_hands": len(hand_records),
+        "largest_pot": max(r.pot for r in hand_records),
+        "showdown_rate": sum(r.went_to_showdown for r in hand_records) / len(hand_records)
+    }
+```
+
+Include in final result POST to platform.
+
+---
+
+## 📚 Related Documentation
+
+- [README.md](../README.md): Complete usage guide and quick start
+- [ARCHITECTURE.md](ARCHITECTURE.md): System design details
+- [DEVELOPMENT.md](DEVELOPMENT.md): Developer guide for contributors
+- [API_REFERENCE.md](../API_REFERENCE.md): API documentation
+
+---
+
+**AgentBeats integration maintained by the Green Agent Benchmark team**
