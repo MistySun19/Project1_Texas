@@ -1,0 +1,346 @@
+# Green Agent Benchmark - System Architecture
+
+This document explains the system architecture and design principles of the Green Agent Benchmark.
+
+## 📐 Architecture Overview
+
+The Green Agent Benchmark is designed as a modular, extensible evaluation framework for poker agents with three key architectural layers:
+
+```
+┌─────────────────────────────────────────────────┐
+│           CLI & Configuration Layer             │
+│  (cli.py, config_loader.py, env_loader.py)    │
+└─────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────┐
+│         Orchestration & Metrics Layer           │
+│     (runner.py, metrics.py, logging_utils.py)  │
+└─────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────┐
+│            Game Engine & Agent Layer            │
+│  (engine.py, cards.py, agents/*, schemas.py)   │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Core Components
+
+### 1. Game Engine (`engine.py`)
+
+**Responsibility**: No-Limit Texas Hold'em state machine
+
+**Key Classes**:
+- `HoldemEngine`: Main game loop orchestrator
+- `EngineConfig`: Game configuration (blinds, stacks, timeouts)
+- `PlayerRuntimeState`: Per-player state tracking
+- `AgentInterface`: Unified agent wrapper
+
+**Key Functions**:
+- `play_hand()`: Executes one complete poker hand
+- `betting_round()`: Manages betting rounds (preflop, flop, turn, river)
+- `_post_blind()`: Handles blind posting
+- `_apply_action()`: Processes player actions (fold/check/call/raise)
+- `showdown()`: Determines winners and distributes pots
+
+**Design Principles**:
+- **Deterministic**: Same seed → same deck shuffle → same hand outcome
+- **Governance**: Timeout and illegal action handling with penalties
+- **Complete NLHE**: All-in, side pots, odd chip rules
+- **Event Logging**: Every action logged to NDJSON for replay
+
+---
+
+### 2. Orchestration (`runner.py`)
+
+**Responsibility**: Batch experiment coordination
+
+**Key Classes**:
+- `BenchmarkRunner`: Executes series of hands
+- `SeriesConfig`: Experiment configuration
+- `HandRecord`: Per-hand result tracking
+
+**Key Functions**:
+- `_run_hu()`: Heads-up mode with duplicate hands and position swapping
+- `_run_sixmax()`: 6-max mode with seat rotation
+- `_create_agent_from_spec()`: Dynamic agent loading
+- `_rotate_assignment()`: Position/seat balancing
+
+**Variance Control Techniques**:
+- **Duplicate HU**: Same hands played from both positions (SB/BB swap)
+- **Seat Replicas**: 6-max rotates agents through all seats
+- **Multiple Seeds**: Different card distributions for statistical robustness
+
+---
+
+### 3. Metrics System (`metrics.py`)
+
+**Responsibility**: Statistical analysis and reporting
+
+**Key Functions**:
+- `aggregate_run_metrics()`: Computes bb/100, CI, match points
+- `_parse_behavior_from_logs()`: Extracts VPIP/PFR/AF/WTSD from logs
+- `_aggregate_player_metrics()`: Per-player statistics aggregation
+
+**Metrics Pipeline**:
+```
+NDJSON Logs → Parse Events → Compute Behavior Stats
+     ↓
+Hand Records → Group by Player → Calculate bb/100
+     ↓
+Bootstrap CI → Determine Match Points → Output JSON
+```
+
+**Statistical Methods**:
+- **bb/100 Calculation**: `(total_chips / big_blind / hands) × 100`
+- **Confidence Interval**: Seed-level variance with 95% CI
+- **Match Points**: +1 if CI>0, -1 if CI<0, 0 otherwise
+
+---
+
+### 4. Agent System (`agents/`)
+
+**Agent Interface** (`base.py`):
+```python
+class AgentProtocol:
+    name: str
+    def reset(seat_id: int, table_config: dict) -> None
+    def act(request: ActionRequest) -> ActionResponse
+```
+
+**Baseline Agents**:
+- `RandomAgent`: Randomly selects legal actions
+- `TagAgent`: Tight-Aggressive rule-based strategy
+- `CFRLiteAgent`: CFR-inspired strategy with equity estimation
+
+**LLM Agents** (all inherit from `OpenAICompatibleAgent`):
+- `GPT5Agent`, `GeminiAgent`, `DeepSeekAgent`, `KimiAgent`
+- `QwenAgent`, `CohereAgent`, `DoubaoAgent`, `GLMAgent`
+
+**LLM Agent Architecture**:
+```
+ActionRequest → Structured Prompt → LLM API Call
+     ↓
+JSON Response → Parse Action → Validate
+     ↓
+Valid? → Return ActionResponse
+Invalid? → Safe Fallback (check/fold)
+```
+
+---
+
+## 📦 Data Structures
+
+### ActionRequest
+```python
+@dataclass
+class ActionRequest:
+    # Table state
+    seat_count: int, button_seat: int, blinds: dict, stacks: dict
+    pot: int, to_call: int, min_raise_to: int
+    
+    # Cards
+    hole_cards: List[str]  # ["Ah", "Kd"]
+    board: List[str]       # ["Qh", "Jc", "Ts"]
+    
+    # Context
+    action_history: List[ActionHistoryEntry]
+    legal_actions: List[str]  # ["fold", "check", "call", "raise_to"]
+    
+    # Metadata
+    hand_id: str, rng_tag: str, timebank_ms: int
+```
+
+### ActionResponse
+```python
+@dataclass
+class ActionResponse:
+    action: str  # "fold" | "check" | "call" | "raise_to"
+    amount: Optional[int]  # Required for raise_to
+    metadata: Optional[dict]  # Agent-specific data
+    wait_time_ms: int  # Decision time
+```
+
+---
+
+## 🔄 Execution Flow
+
+### Single Hand Flow
+```
+1. BenchmarkRunner.run()
+   ↓
+2. Create HoldemEngine with agents
+   ↓
+3. For each hand:
+   └─ engine.play_hand()
+      ├─ Shuffle deck (deterministic seed)
+      ├─ Deal hole cards
+      ├─ Post blinds
+      ├─ Betting rounds (preflop → flop → turn → river)
+      │  └─ For each active player:
+      │     ├─ agent.act(ActionRequest)
+      │     ├─ Validate action (timeout/illegal check)
+      │     └─ Apply action (update pot/stacks)
+      ├─ Showdown (if multiple players remain)
+      └─ Distribute pots
+   ↓
+4. Collect HandRecord (delta, timeouts, illegal_actions)
+   ↓
+5. Write NDJSON logs and per-hand metrics
+   ↓
+6. aggregate_run_metrics() → metrics.json
+```
+
+### Heads-Up Duplicate Matching
+```
+Seed 101, Hand 0:
+  Replica 0: Agent A (SB) vs Agent B (BB)
+  Replica 1: Agent B (SB) vs Agent A (BB)  ← Same deck, swapped positions
+  
+Result: Variance reduced by ~60-80%
+```
+
+### 6-Max Seat Rotation
+```
+Seat Replica 0: [A, B, C, D, E, F]  ← Agent A at BTN
+Seat Replica 1: [B, C, D, E, F, A]  ← Agent A at SB
+Seat Replica 2: [C, D, E, F, A, B]  ← Agent A at BB
+...
+Seat Replica 5: [F, A, B, C, D, E]  ← Agent A at CO
+
+Result: All agents experience all positions equally
+```
+
+---
+
+## 🛡️ Governance & Safety
+
+### Timeout Handling
+```python
+# Decision timeout (default 60s)
+try:
+    response = agent.act(request)
+except TimeoutError:
+    # Log penalty
+    logger.log({"type": "penalty", "reason": "timeout"})
+    # Safe fallback
+    response = ActionResponse(action="check" if to_call == 0 else "fold")
+```
+
+### Illegal Action Handling
+```python
+# Invalid action detection
+if action not in legal_actions:
+    logger.log({"type": "penalty", "reason": "illegal_action"})
+    response = ActionResponse(action="check" if to_call == 0 else "fold")
+```
+
+### Deterministic RNG
+```python
+def build_deck_from_seed(seed: int, hand_index: int, replica_id: int):
+    # Unique RNG state for each hand
+    rng = random.Random(f"{seed}-{hand_index}-{replica_id}")
+    deck = new_deck()
+    rng.shuffle(deck)
+    return deck, f"seed={seed} hand={hand_index} replica={replica_id}"
+```
+
+---
+
+## 🔌 Extension Points
+
+### Adding New Agents
+1. Implement `AgentProtocol` interface
+2. Register in `baseline_registry.py` (optional)
+3. Use `--agent module:ClassName` or `baseline:name`
+
+### Adding New Metrics
+1. Extend `_parse_behavior_from_logs()` to extract new events
+2. Add computation in `_aggregate_player_metrics()`
+3. Update output schema in `metrics.json`
+
+### Custom Configurations
+1. Create YAML in `configs/`
+2. Define `mode`, `blinds`, `stacks_bb`, `seeds`
+3. Specify `lineup` or `opponent_mix`/`opponent_pool`
+
+---
+
+## 📝 Logging Format
+
+### NDJSON Event Schema
+```json
+{
+  "timestamp": "2025-01-15T10:30:45.123Z",
+  "type": "hand_start" | "deal_hole" | "action" | "showdown" | "hand_end",
+  "hand_id": "101-0-0",
+  "rng_tag": "seed=101 hand=0 replica=0",
+  "payload": { /* event-specific data */ }
+}
+```
+
+### Event Types
+- `hand_start`: New hand begins
+- `deal_hole`: Hole cards dealt
+- `action`: Player action (fold/check/call/raise)
+- `penalty`: Timeout or illegal action
+- `showdown`: Hand evaluation at river
+- `hand_end`: Final chip deltas
+
+---
+
+## 🎨 Design Patterns
+
+### Strategy Pattern (Agents)
+- All agents implement same interface
+- Engine doesn't know agent implementation details
+- Easy to swap/add agents
+
+### Template Method (Game Loop)
+- `play_hand()` defines skeleton
+- Subcomponents handle specific steps (betting, showdown)
+
+### Factory Pattern (Agent Loading)
+- `baseline_registry.py` provides agent factories
+- `load_agent()` dynamically imports custom agents
+
+### Observer Pattern (Logging)
+- `NDJSONLogger` observes all game events
+- Decoupled from engine logic
+
+---
+
+## 🧪 Testing Strategy
+
+### Unit Testing
+- Card evaluation (`cards.py`)
+- Metrics computation (`metrics.py`)
+- Agent interface validation
+
+### Integration Testing
+- Full hand execution with mock agents
+- Configuration loading and validation
+- NDJSON log parsing
+
+### Smoke Testing
+```bash
+# 10-hand quick test
+python -m green_agent_benchmark.cli \
+  --config configs/demo_hu_10hands.yaml \
+  --agent baseline:random-hu \
+  --output artifacts/smoke_test
+```
+
+---
+
+## 📚 Related Documentation
+
+- [README.md](../README.md): Complete usage guide and quick start
+- [API_REFERENCE.md](../API_REFERENCE.md): API documentation
+- [DEVELOPMENT.md](DEVELOPMENT.md): Developer guide
+- [AGENTBEATS.md](AGENTBEATS.md): Platform integration
+
+---
+
+**Architecture maintained by the Green Agent Benchmark team**
