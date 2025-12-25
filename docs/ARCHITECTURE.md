@@ -6,7 +6,7 @@
 
 - 项目目标：评测语言模型（LLM）与规则/启发式德州扑克（NLHE）智能体的对战表现，在可复现、可度量、可治理的环境中产出稳定指标（如 bb/100、置信区间、行为特征等）。
 - 运行形态：
-  - Heads-up（HU，2人桌）：支持“复制赛局”（duplicate）与左右手位轮换，控制方差。
+  - Heads- 快速运行（无需外网/Key，随机基线）：参见 `PROJECT_OVERVIEW.md` 的"10 手冒烟测试"示例。up（HU，2人桌）：支持“复制赛局”（duplicate）与左右手位轮换，控制方差。
   - 6-max（6人桌）：支持座位复制（seat replicas）与对手池/阵容配置。
 - 关键模块：
   - 引擎（`engine.py`）：完整的 NLHE 状态机（发牌、押注轮次、全下、边池、摊牌、结算）+ 治理（超时/非法动作替换和记分）。
@@ -144,7 +144,7 @@
   - `aggregate_run_metrics(hand_records, log_paths, big_blind)`：
     - 按玩家聚合 `HandRecord` 列表，计算 `bb/100` 与 95% CI（按 seed 的分组方差估计）。
     - 从 NDJSON 日志反解析出行为统计：VPIP、PFR、AF、WTSD、决策时间等。
-    - 输出结构与 `README` 示例一致（包含 timeouts/illegal_actions per-hand 率）。
+    - 输出结构与 `PROJECT_OVERVIEW` 示例一致（包含 timeouts/illegal_actions per-hand 率）。
 
 ### 5) 牌与评估
 
@@ -227,7 +227,7 @@
 ## 八、文件一览（清单）
 
 - 顶层
-  - `README.md` 项目说明与指南
+  - `PROJECT_OVERVIEW.md` 项目说明与指南
   - `pyproject.toml` / `requirements.txt` 构建与依赖
   - `scripts/run_series.py` 便捷入口
 - 配置
@@ -248,7 +248,7 @@
 ## 九、快速上手与验证
 
 - 快速运行（无需外网/Key，随机基线）：参见 `README.md` 的“10 手冒烟测试”示例。
-- 带 LLM 的运行：在 `.env` 写入对应 `*_API_KEY` 与可选 `*_API_BASE`，然后按 README 示例选择相应代理。
+- 带 LLM 的运行：在 `.env` 写入对应 `*_API_KEY` 与可选 `*_API_BASE`，然后按 PROJECT_OVERVIEW 示例选择相应代理。
 - 输出核验：查看 `artifacts/<run>/metrics/metrics.json`，比对各玩家的 `bb/100` 与行为统计是否合理。
 
 祝你玩得开心，评测顺利！
